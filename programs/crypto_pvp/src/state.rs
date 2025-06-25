@@ -4,8 +4,8 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 pub struct GlobalState {
     pub game_counter: u64,          // Next game ID to use
-    pub total_games_completed: u64, // Total completed games
-    pub authority: Pubkey,          // For future upgrades
+    pub total_games_completed: u64, // Total completed 
+    pub authority: Pubkey,          // For application admin functions
     pub bump: u8,                   // PDA bump for global state
 }
 
@@ -14,9 +14,10 @@ pub struct GlobalState {
 pub struct PlayerProfile {
     pub player: Pubkey,             // Owner of this profile
     pub name: String,
-    pub available_funds: u64, //QUESTION is this data type correct? probably not? in eth funds must be in uint256 to avoid overflows
+    pub available_funds: u64,       // TODO implement funds
     pub total_games: u64,           // Games played
     pub total_games_completed: u64, 
+    pub total_games_forfeited: u64,
     pub wins: u32,
     pub losses: u32,
     pub ties: u32,
@@ -66,6 +67,6 @@ pub enum Winner {
     Player1,
     Player2,
     Tie,
-    Player1_OpponentForefit,  // Player1 wins because Player2 forefitted, and didn't reveal in time
-    Player2_OpponentForefit,  // Player2 wins because Player1 forefitted, and didn't reveal in time
+    Player1_OpponentForfeit,  // Player1 wins because Player2 forfeited, and didn't reveal in time
+    Player2_OpponentForfeit,  // Player2 wins because Player1 forfeited, and didn't reveal in time
 }

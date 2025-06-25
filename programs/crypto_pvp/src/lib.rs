@@ -166,7 +166,7 @@ pub mod crypto_pvp {
             
             game.state = GameState::Finished;
             
-            // Update global stats when game finishes
+            // Update stats when game finishes
             let global_state = &mut ctx.accounts.global_state;
             global_state.total_games_completed += 1;
             
@@ -201,9 +201,6 @@ pub mod crypto_pvp {
             GameError::NotPlayerInGame
         );
 
-        // TODO require player has revealed.
-        // this will simplify the logic that follows
-
         // Check if deadline has passed
         let deadline = game.reveal_deadline.ok_or(GameError::NoDeadlineSet)?; // this requires a deadline to be set.
         require!(clock.unix_timestamp > deadline, GameError::DeadlineNotReached);
@@ -213,12 +210,12 @@ pub mod crypto_pvp {
             // Player1 is claiming, so player1 must have revealed and player2 must not have
             require!(game.player1_move.is_some(), GameError::ClaimerDidNotReveal);
             require!(game.player2_move.is_none(), GameError::OpponentAlreadyRevealed);
-            (Winner::Player1_OpponentForefit, game.player1)
+            (Winner::Player1_OpponentForfeit, game.player1)
         } else {
             // Player2 is claiming, so player2 must have revealed and player1 must not have
             require!(game.player2_move.is_some(), GameError::ClaimerDidNotReveal);
             require!(game.player1_move.is_none(), GameError::OpponentAlreadyRevealed);
-            (Winner::Player2_OpponentForefit, game.player2)
+            (Winner::Player2_OpponentForfeit, game.player2)
         };
 
         game.winner_type = Some(winner_type);
@@ -282,7 +279,7 @@ pub struct InitializeGlobalState<'info> {
         bump
     )]
     pub global_state: Account<'info, GlobalState>,
-    pub authority: Signer<'info>, //TODO this value is not being used i think. it is stored in global state. should it be stored somewhere more formal?
+    pub authority: Signer<'info>,
     // TODO play around with upgrading contracts later
     pub system_program: Program<'info, System>,
 }
@@ -366,6 +363,18 @@ pub struct RevealMove<'info> {
     )]
     pub global_state: Account<'info, GlobalState>,
     pub player: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"player_profile", game.player1.as_ref()],
+        bump = player1_profile.bump
+    )]
+    pub player1_profile: Account<'info, PlayerProfile>,
+    #[account(
+        mut,
+        seeds = [b"player_profile", game.player2.as_ref()],
+        bump = player2_profile.bump
+    )]
+    pub player2_profile: Account<'info, PlayerProfile>,
 }
 
 #[derive(Accounts)]
