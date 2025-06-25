@@ -15,7 +15,7 @@ pub struct PlayerProfile {
     pub player: Pubkey,             // Owner of this profile
     pub name: String,
     pub available_funds: u64,       // TODO implement funds
-    pub total_games: u64,           // Games played
+    pub total_games_played: u64,           // Games played
     pub total_games_completed: u64, 
     pub total_games_forfeited: u64,
     pub wins: u32,
@@ -23,8 +23,8 @@ pub struct PlayerProfile {
     pub ties: u32,
     pub total_wagered: u64,         // Lifetime betting volume
     pub total_won: u64,             // Lifetime winnings
-    pub current_streak: i32,        // Win streak (+ win, - loss)
-    pub best_streak: u32,           // Best win streak ever
+    pub current_streak: i32,        //TODO // Win streak (+ win, - loss)
+    pub best_streak: u32,           //TODO // Best win streak ever
     pub created_at: i64,            // Account creation timestamp
     pub bump: u8,
 }
@@ -67,6 +67,6 @@ pub enum Winner {
     Player1,
     Player2,
     Tie,
-    Player1_OpponentForfeit,  // Player1 wins because Player2 forfeited, and didn't reveal in time
-    Player2_OpponentForfeit,  // Player2 wins because Player1 forfeited, and didn't reveal in time
+    Player1_OpponentForfeit,  // Player1 wins because Player2 forfeited; didn't reveal in time
+    Player2_OpponentForfeit,  // Player2 wins because Player1 forfeited; didn't reveal in time
 }

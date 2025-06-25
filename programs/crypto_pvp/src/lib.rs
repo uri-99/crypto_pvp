@@ -102,6 +102,10 @@ pub mod crypto_pvp {
             return Err(GameError::NotPlayerInGame.into());
         }
 
+        // Increment total_games_played when player participates in a game
+        let player_profile = &mut ctx.accounts.player_profile;
+        player_profile.total_games_played += 1;
+
         msg!("Move committed by player: {} in game #{}", player, game.game_id); //TODO change to event emition?
         
         // Check if both players have committed
@@ -152,13 +156,13 @@ pub mod crypto_pvp {
 
         // Check if both players have revealed
         if game.player1_move.is_some() && game.player2_move.is_some() { // Finish match
-            let winner = determine_winner(
+            let winner_type = determine_winner(
                 game.player1_move.unwrap(),
                 game.player2_move.unwrap(),
             );
             
-            game.winner_type = Some(winner);
-            game.winner_address = match winner {
+            game.winner_type = Some(winner_type);
+            game.winner_address = match winner_type {
                 Winner::Player1 => Some(game.player1),
                 Winner::Player2 => Some(game.player2),
                 Winner::Tie => None, //TODO lets discuss draws later.
@@ -169,6 +173,13 @@ pub mod crypto_pvp {
             // Update stats when game finishes
             let global_state = &mut ctx.accounts.global_state;
             global_state.total_games_completed += 1;
+            
+            // Update player profile stats
+            update_player_stats(
+                &mut ctx.accounts.player1_profile,
+                &mut ctx.accounts.player2_profile,
+                winner_type,
+            )?;
             
             msg!("Game #{} finished! Winner: {:?}, address: {:?}", game.game_id, game.winner_type, game.winner_address);
         } else { // First player reveal, set the timeout
@@ -226,6 +237,13 @@ pub mod crypto_pvp {
         let global_state = &mut ctx.accounts.global_state;
         global_state.total_games_completed += 1;
 
+        // Update player profile stats
+        update_player_stats(
+            &mut ctx.accounts.player1_profile,
+            &mut ctx.accounts.player2_profile,
+            winner_type,
+        )?;
+
         msg!("Game #{} finished by opponent forefit! Winner: {:?}, address: {:?}", 
              game.game_id, game.winner_type, game.winner_address);
         Ok(())
@@ -262,6 +280,51 @@ fn initialize_player_profile_if_needed(
         
         msg!("New player profile created: {} with default name: {}", player, player_profile.name);
     }
+    Ok(())
+}
+
+/// Helper function to update player stats when a game finishes
+fn update_player_stats(
+    player1_profile: &mut Account<PlayerProfile>,
+    player2_profile: &mut Account<PlayerProfile>,
+    winner_type: Winner,
+) -> Result<()> {
+    // Update wins/losses/ties and game completion stats based on outcome
+    match winner_type {
+        Winner::Player1 => {
+            player1_profile.total_games_completed += 1;
+            player2_profile.total_games_completed += 1;
+            player1_profile.wins += 1;
+            player2_profile.losses += 1;
+        }
+        Winner::Player2 => {
+            player1_profile.total_games_completed += 1;
+            player2_profile.total_games_completed += 1;
+            player1_profile.losses += 1;
+            player2_profile.wins += 1;
+        }
+        Winner::Tie => {
+            player1_profile.total_games_completed += 1;
+            player2_profile.total_games_completed += 1;
+            player1_profile.ties += 1;
+            player2_profile.ties += 1;
+        }
+        Winner::Player1_OpponentForfeit => {
+            // Player1 completed, Player2 forfeited
+            player1_profile.total_games_completed += 1;
+            player2_profile.total_games_forfeited += 1;
+            player1_profile.wins += 1;
+            player2_profile.losses += 1;
+        }
+        Winner::Player2_OpponentForfeit => {
+            // Player2 completed, Player1 forfeited
+            player1_profile.total_games_forfeited += 1;
+            player2_profile.total_games_completed += 1;
+            player1_profile.losses += 1;
+            player2_profile.wins += 1;
+        }
+    }
+    
     Ok(())
 }
 
@@ -345,6 +408,12 @@ pub struct CommitMove<'info> {
     )]
     pub game: Account<'info, Game>,
     pub player: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"player_profile", player.key().as_ref()],
+        bump = player_profile.bump
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
 }
 
 #[derive(Accounts)]
@@ -404,4 +473,16 @@ pub struct ClaimTimeoutVictory<'info> {
     )]
     pub global_state: Account<'info, GlobalState>,
     pub player: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"player_profile", game.player1.as_ref()],
+        bump = player1_profile.bump
+    )]
+    pub player1_profile: Account<'info, PlayerProfile>,
+    #[account(
+        mut,
+        seeds = [b"player_profile", game.player2.as_ref()],
+        bump = player2_profile.bump
+    )]
+    pub player2_profile: Account<'info, PlayerProfile>,
 }
