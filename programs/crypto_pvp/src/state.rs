@@ -15,7 +15,7 @@ pub struct PlayerProfile {
     pub player: Pubkey,             // Owner of this profile
     pub name: String,
     pub available_funds: u64,       // TODO implement funds
-    pub total_games_played: u64,           // Games played
+    pub total_games_played: u64,    // Games played
     pub total_games_completed: u64, 
     pub total_games_forfeited: u64,
     pub wins: u32,
@@ -50,7 +50,6 @@ pub struct Game {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
 pub enum GameState {
     WaitingForPlayer,
-    CommitPhase,
     RevealPhase,
     Finished,
 }
@@ -62,7 +61,7 @@ pub enum Move {
     Scissors,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace, Debug)]
 pub enum Winner {
     Player1,
     Player2,
