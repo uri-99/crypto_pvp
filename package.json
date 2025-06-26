@@ -3,6 +3,7 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "initialize": "ts-node scripts/initialize.ts",
     "create-game": "ts-node scripts/create_game.ts",
     "join-game": "ts-node scripts/join_game.ts",
     "reveal-move": "ts-node scripts/reveal_move.ts"
