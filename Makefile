@@ -14,7 +14,7 @@ AUTHORITY_WALLET ?= ~/.config/solana/authority.json
 PLAYER_ALICE_WALLET ?= ~/.config/solana/playerAlice.json
 PLAYER_BOB_WALLET ?= ~/.config/solana/playerBob.json
 
-.PHONY: help setup build deploy test clean validator-start validator-stop airdrop airdrop-all alice_create bob_create alice_join bob_join alice_reveal bob_reveal
+.PHONY: help setup build deploy test clean validator-start validator-stop airdrop airdrop-all alice_create bob_create alice_join bob_join alice_reveal bob_reveal initialize
 
 help: ## Show this help message
 	@echo "$(GREEN)Crypto PvP Development Commands$(NC)"
@@ -68,6 +68,11 @@ deploy: build ## Deploy program to localnet
 	anchor deploy
 	@echo "$(GREEN)Deployment complete!$(NC)"
 
+initialize: ## Initialize global state (required after validator restart)
+	@echo "$(GREEN)Initializing global state...$(NC)"
+	ANCHOR_WALLET=$(AUTHORITY_WALLET) yarn initialize
+	@echo "$(GREEN)Global state initialized!$(NC)"
+
 status: ## Show current status
 	@echo "$(GREEN)=== Solana Configuration ===$(NC)"
 	@solana config get
@@ -91,7 +96,7 @@ logs: ## Show validator logs
 	@echo "$(GREEN)Showing validator logs (Ctrl+C to exit)...$(NC)"
 	solana logs
 
-dev: validator-start airdrop-all deploy status logs ## Full dev setup: start validator, airdrop all wallets, deploy
+dev: validator-start airdrop-all deploy initialize status logs ## Full dev setup: start validator, airdrop all wallets, deploy, initialize
 	@echo "$(GREEN)Development environment ready!$(NC)"
 	@echo "$(YELLOW)Your program is deployed and ready for testing$(NC)"
 
