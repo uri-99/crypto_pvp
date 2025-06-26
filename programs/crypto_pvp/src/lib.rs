@@ -7,7 +7,7 @@ pub mod state;
 use errors::*;
 use state::*;
 
-declare_id!("GgHgsQHPhSuD9BXbDZUsf4XtDgnn6i5XMVKSmjpwLtHi");
+declare_id!("3S9Go4XvdE9bH8UjGmyDqEpaEHLSt7BMLGZEw5jB7DLP");
 
 // Constants
 const REVEAL_TIMEOUT_SECONDS: i64 = 300; // 5 minutes - secure against 1-2s validator skewing
@@ -69,7 +69,7 @@ pub mod crypto_pvp {
         Ok(())
     }
 
-    pub fn join_game(ctx: Context<JoinGame>, move_hash: [u8; 32]) -> Result<()> {
+    pub fn join_game(ctx: Context<JoinGame>, _game_id: u64, move_hash: [u8; 32]) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
         // Initialize player profile if needed (with default name)
@@ -101,7 +101,7 @@ pub mod crypto_pvp {
         Ok(())
     }
 
-    pub fn reveal_move(ctx: Context<RevealMove>, move_choice: Move, salt: [u8; 32]) -> Result<()> {
+    pub fn reveal_move(ctx: Context<RevealMove>, _game_id: u64, move_choice: Move, salt: [u8; 32]) -> Result<()> {
         let game = &mut ctx.accounts.game;
         let player = ctx.accounts.player.key();
         
