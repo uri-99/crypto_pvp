@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-crypto_pvp = "GgHgsQHPhSuD9BXbDZUsf4XtDgnn6i5XMVKSmjpwLtHi"
+crypto_pvp = "3S9Go4XvdE9bH8UjGmyDqEpaEHLSt7BMLGZEw5jB7DLP"
 
 [registry]
 url = "https://api.apr.dev"
