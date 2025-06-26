@@ -150,6 +150,8 @@ pub mod crypto_pvp {
                 Winner::Player1 => Some(game.player1),
                 Winner::Player2 => Some(game.player2),
                 Winner::Tie => None, //TODO lets discuss draws later.
+                Winner::Player1OpponentForfeit => Some(game.player1),
+                Winner::Player2OpponentForfeit => Some(game.player2),
             };
             
             game.state = GameState::Finished;
@@ -176,14 +178,6 @@ pub mod crypto_pvp {
         Ok(())
     }
 
-    /// Update player name (can be called anytime)
-    pub fn update_player_name(ctx: Context<UpdatePlayerName>, new_name: String) -> Result<()> {
-        let player_profile = &mut ctx.accounts.player_profile;
-        player_profile.name = new_name;
-        msg!("Player {} updated name to: {}", ctx.accounts.player.key(), player_profile.name);
-        Ok(())
-    }
-
     /// Claim victory when opponent fails to reveal within timeout
     pub fn claim_timeout_victory(ctx: Context<ClaimTimeoutVictory>) -> Result<()> {
         let game = &mut ctx.accounts.game;
@@ -205,12 +199,12 @@ pub mod crypto_pvp {
             // Player1 is claiming, so player1 must have revealed and player2 must not have
             require!(game.player1_move.is_some(), GameError::ClaimerDidNotReveal);
             require!(game.player2_move.is_none(), GameError::OpponentAlreadyRevealed);
-            (Winner::Player1_OpponentForfeit, game.player1)
+            (Winner::Player1OpponentForfeit, game.player1)
         } else {
             // Player2 is claiming, so player2 must have revealed and player1 must not have
             require!(game.player2_move.is_some(), GameError::ClaimerDidNotReveal);
             require!(game.player1_move.is_none(), GameError::OpponentAlreadyRevealed);
-            (Winner::Player2_OpponentForfeit, game.player2)
+            (Winner::Player2OpponentForfeit, game.player2)
         };
 
         game.winner_type = Some(winner_type);
@@ -230,6 +224,14 @@ pub mod crypto_pvp {
 
         msg!("Game #{} finished by opponent forefit! Winner: {:?}, address: {:?}", 
              game.game_id, game.winner_type, game.winner_address);
+        Ok(())
+    }
+
+    /// Update player name (can be called anytime)
+    pub fn update_player_name(ctx: Context<UpdatePlayerName>, new_name: String) -> Result<()> {
+        let player_profile = &mut ctx.accounts.player_profile;
+        player_profile.name = new_name;
+        msg!("Player {} updated name to: {}", ctx.accounts.player.key(), player_profile.name);
         Ok(())
     }
 }
@@ -322,14 +324,14 @@ fn update_player_stats(
             player1_profile.ties += 1;
             player2_profile.ties += 1;
         }
-        Winner::Player1_OpponentForfeit => {
+        Winner::Player1OpponentForfeit => {
             // Player1 completed, Player2 forfeited
             player1_profile.total_games_completed += 1;
             player2_profile.total_games_forfeited += 1;
             player1_profile.wins += 1;
             player2_profile.losses += 1;
         }
-        Winner::Player2_OpponentForfeit => {
+        Winner::Player2OpponentForfeit => {
             // Player2 completed, Player1 forfeited
             player1_profile.total_games_forfeited += 1;
             player2_profile.total_games_completed += 1;
@@ -363,7 +365,7 @@ pub struct CreateGame<'info> {
         init,
         payer = player,
         space = 8 + Game::INIT_SPACE,
-        seeds = [b"game", &global_state.game_counter.to_le_bytes()],
+        seeds = [b"game", global_state.game_counter.to_le_bytes().as_ref()],
         bump
     )]
     pub game: Account<'info, Game>,
@@ -377,7 +379,6 @@ pub struct CreateGame<'info> {
     pub player: Signer<'info>,
     #[account(
         init_if_needed,  // ← Creates profile if it doesn't exist
-        mut, // To init the player
         payer = player,
         space = 8 + PlayerProfile::INIT_SPACE,
         seeds = [b"player_profile", player.key().as_ref()],
@@ -392,7 +393,7 @@ pub struct CreateGame<'info> {
 pub struct JoinGame<'info> {
     #[account(
         mut,
-        seeds = [b"game", &game_id.to_le_bytes()],
+        seeds = [b"game", game_id.to_le_bytes().as_ref()],
         bump = game.bump
     )]
     pub game: Account<'info, Game>,
@@ -400,7 +401,6 @@ pub struct JoinGame<'info> {
     pub player: Signer<'info>,
     #[account(
         init_if_needed,  // ← Creates profile if it doesn't exist
-        mut, // To init the player
         payer = player,
         space = 8 + PlayerProfile::INIT_SPACE,
         seeds = [b"player_profile", player.key().as_ref()],
@@ -415,7 +415,7 @@ pub struct JoinGame<'info> {
 pub struct RevealMove<'info> {
     #[account(
         mut,
-        seeds = [b"game", &game_id.to_le_bytes()],
+        seeds = [b"game", game_id.to_le_bytes().as_ref()],
         bump = game.bump
     )]
     pub game: Account<'info, Game>,
@@ -456,7 +456,7 @@ pub struct UpdatePlayerName<'info> {
 pub struct ClaimTimeoutVictory<'info> {
     #[account(
         mut,
-        seeds = [b"game", &game_id.to_le_bytes()],
+        seeds = [b"game", game_id.to_le_bytes().as_ref()],
         bump = game.bump
     )]
     pub game: Account<'info, Game>,

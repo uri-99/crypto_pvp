@@ -13,6 +13,7 @@ pub struct GlobalState {
 #[derive(InitSpace)]
 pub struct PlayerProfile {
     pub player: Pubkey,             // Owner of this profile
+    #[max_len(32)]
     pub name: String,
     pub available_funds: u64,       // TODO implement funds
     pub total_games_played: u64,    // Games played
@@ -66,6 +67,6 @@ pub enum Winner {
     Player1,
     Player2,
     Tie,
-    Player1_OpponentForfeit,  // Player1 wins because Player2 forfeited; didn't reveal in time
-    Player2_OpponentForfeit,  // Player2 wins because Player1 forfeited; didn't reveal in time
+    Player1OpponentForfeit,  // Player1 wins because Player2 forfeited; didn't reveal in time
+    Player2OpponentForfeit,  // Player2 wins because Player1 forfeited; didn't reveal in time
 }
