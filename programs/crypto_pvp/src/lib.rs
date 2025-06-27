@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hash;
+use anchor_lang::system_program::{transfer, Transfer};
 
 pub mod errors;
 pub mod state;
@@ -33,7 +34,7 @@ pub mod crypto_pvp {
     //TODO function allowing closing of players for users to reclaim rent?
 
     // Creates a new game with player1's commit
-    pub fn create_game(ctx: Context<CreateGame>, wager: u64, move_hash: [u8; 32]) -> Result<()> {
+    pub fn create_game(ctx: Context<CreateGame>, wager: WagerAmount, move_hash: [u8; 32]) -> Result<()> {
         let global_state = &mut ctx.accounts.global_state;
         let game = &mut ctx.accounts.game;
 
@@ -54,6 +55,19 @@ pub mod crypto_pvp {
         game.winner_address = None;
         game.bump = ctx.bumps.game;
         
+        // Transfer wager amount from player to game account
+        let wager_lamports = wager.to_lamports();
+        transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.player.to_account_info(),
+                    to: game.to_account_info(),
+                },
+            ),
+            wager_lamports,
+        )?;
+        
         // Commit player1's move
         commit_move_helper(
             game,
@@ -61,11 +75,14 @@ pub mod crypto_pvp {
             &ctx.accounts.player.key(),
             move_hash,
         )?;
-        
+
+        // Update player1's wagering stats
+        ctx.accounts.player1_profile.total_wagered += wager_lamports;
         // Update global stats
         global_state.game_counter += 1;
         
-        msg!("Game #{} created and move committed by player1: {}, wager: {}", game.game_id, ctx.accounts.player.key(), wager);
+        msg!("Game #{} created and move committed by player1: {}, wager: {} lamports", 
+             game.game_id, ctx.accounts.player.key(), wager.to_lamports());
         Ok(())
     }
 
@@ -84,6 +101,19 @@ pub mod crypto_pvp {
         
         game.player2 = ctx.accounts.player.key();
         
+        // Transfer wager amount from player2 to game account
+        let wager_lamports = game.wager.to_lamports();
+        transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.player.to_account_info(),
+                    to: game.to_account_info(),
+                },
+            ),
+            wager_lamports,
+        )?;
+        
         // Commit player2's move
         commit_move_helper(
             game,
@@ -92,6 +122,8 @@ pub mod crypto_pvp {
             move_hash,
         )?;
         
+        // Update player2's wagering stats
+        ctx.accounts.player2_profile.total_wagered += wager_lamports;
         // Since both players have now committed, advance to reveal phase
         game.state = GameState::RevealPhase;
         
@@ -161,9 +193,19 @@ pub mod crypto_pvp {
             global_state.total_games_completed += 1;
             
             // Update player profile stats
+            let wager_amount = game.wager.to_lamports();
             update_player_stats(
                 &mut ctx.accounts.player1_profile,
                 &mut ctx.accounts.player2_profile,
+                winner_type,
+                wager_amount,
+            )?;
+            
+            // Handle payout to winner(s)
+            payout_winner(
+                game,
+                &ctx.accounts.player1,
+                &ctx.accounts.player2,
                 winner_type,
             )?;
             
@@ -216,9 +258,19 @@ pub mod crypto_pvp {
         global_state.total_games_completed += 1;
 
         // Update player profile stats
+        let wager_amount = game.wager.to_lamports();
         update_player_stats(
             &mut ctx.accounts.player1_profile,
             &mut ctx.accounts.player2_profile,
+            winner_type,
+            wager_amount,
+        )?;
+
+        // Handle payout to winner
+        payout_winner(
+            game,
+            &ctx.accounts.player1,
+            &ctx.accounts.player2,
             winner_type,
         )?;
 
@@ -303,6 +355,7 @@ fn update_player_stats(
     player1_profile: &mut Account<PlayerProfile>,
     player2_profile: &mut Account<PlayerProfile>,
     winner_type: Winner,
+    wager_amount: u64,
 ) -> Result<()> {
     // Update wins/losses/ties and game completion stats based on outcome
     match winner_type {
@@ -311,18 +364,21 @@ fn update_player_stats(
             player2_profile.total_games_completed += 1;
             player1_profile.wins += 1;
             player2_profile.losses += 1;
+            player1_profile.total_won += wager_amount; // wins profit
         }
         Winner::Player2 => {
             player1_profile.total_games_completed += 1;
             player2_profile.total_games_completed += 1;
             player1_profile.losses += 1;
             player2_profile.wins += 1;
+            player2_profile.total_won += wager_amount; // wins profit
         }
         Winner::Tie => {
             player1_profile.total_games_completed += 1;
             player2_profile.total_games_completed += 1;
             player1_profile.ties += 1;
             player2_profile.ties += 1;
+            // no total_won changes
         }
         Winner::Player1OpponentForfeit => {
             // Player1 completed, Player2 forfeited
@@ -330,6 +386,7 @@ fn update_player_stats(
             player2_profile.total_games_forfeited += 1;
             player1_profile.wins += 1;
             player2_profile.losses += 1;
+            player1_profile.total_won += wager_amount; // wins profit
         }
         Winner::Player2OpponentForfeit => {
             // Player2 completed, Player1 forfeited
@@ -337,6 +394,50 @@ fn update_player_stats(
             player2_profile.total_games_completed += 1;
             player1_profile.losses += 1;
             player2_profile.wins += 1;
+            player2_profile.total_won += wager_amount; // wins profit
+        }
+    }
+    
+    Ok(())
+}
+
+/// Helper function to handle game payouts - transfers SOL from game account to winners
+// TODO : send % fee to contract profit collector.
+fn payout_winner(
+    game: &mut Account<Game>,
+    player1_info: &AccountInfo,
+    player2_info: &AccountInfo,
+    winner_type: Winner,
+) -> Result<()> {
+    let wager = game.wager.to_lamports();
+    let total_pot = wager * 2; // Both players contributed
+    
+    // Safety check: ensure game account has the expected funds
+    let game_balance = game.to_account_info().lamports();
+    require!(game_balance >= total_pot, GameError::InsufficientFunds);
+    
+    match winner_type {
+        Winner::Player1 | Winner::Player1OpponentForfeit => {
+            // Transfer entire pot to player1
+            **game.to_account_info().try_borrow_mut_lamports()? -= total_pot;
+            **player1_info.try_borrow_mut_lamports()? += total_pot;
+            
+            msg!("Payout: {} lamports to winner Player1: {}", total_pot, game.player1);
+        }
+        Winner::Player2 | Winner::Player2OpponentForfeit => {
+            // Transfer entire pot to player2  
+            **game.to_account_info().try_borrow_mut_lamports()? -= total_pot;
+            **player2_info.try_borrow_mut_lamports()? += total_pot;
+            
+            msg!("Payout: {} lamports to winner Player2: {}", total_pot, game.player2);
+        }
+        Winner::Tie => {
+            // Transfer original wager to each player
+            **game.to_account_info().try_borrow_mut_lamports()? -= total_pot;
+            **player1_info.try_borrow_mut_lamports()? += wager;
+            **player2_info.try_borrow_mut_lamports()? += wager;
+            
+            msg!("Tie payout: {} lamports to Player1 and Player2", wager);
         }
     }
     
@@ -438,6 +539,12 @@ pub struct RevealMove<'info> {
         bump = player2_profile.bump
     )]
     pub player2_profile: Account<'info, PlayerProfile>,
+    /// CHECK: Player1 account for payout
+    #[account(mut, address = game.player1)]
+    pub player1: AccountInfo<'info>,
+    /// CHECK: Player2 account for payout  
+    #[account(mut, address = game.player2)]
+    pub player2: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
@@ -479,4 +586,10 @@ pub struct ClaimTimeoutVictory<'info> {
         bump = player2_profile.bump
     )]
     pub player2_profile: Account<'info, PlayerProfile>,
+    /// CHECK: Player1 account for payout
+    #[account(mut, address = game.player1)]
+    pub player1: AccountInfo<'info>,
+    /// CHECK: Player2 account for payout  
+    #[account(mut, address = game.player2)]
+    pub player2: AccountInfo<'info>,
 }

@@ -26,4 +26,6 @@ pub enum GameError {
     ClaimerDidNotReveal,
     #[msg("Opponent has already revealed their move")]
     OpponentAlreadyRevealed,
+    #[msg("Insufficient funds in game account for payout")]
+    InsufficientFunds,
 }

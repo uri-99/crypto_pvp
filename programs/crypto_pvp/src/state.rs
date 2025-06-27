@@ -30,13 +30,31 @@ pub struct PlayerProfile {
     pub bump: u8,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace, Debug)]
+pub enum WagerAmount {
+    Sol1,    // 1.0 SOL
+    Sol01,   // 0.1 SOL  
+    Sol001,  // 0.01 SOL
+}
+
+impl WagerAmount {
+    /// Convert enum to lamports (1 SOL = 1_000_000_000 lamports)
+    pub fn to_lamports(&self) -> u64 {
+        match self {
+            WagerAmount::Sol1 => 1_000_000_000,    // 1 SOL
+            WagerAmount::Sol01 => 100_000_000,     // 0.1 SOL
+            WagerAmount::Sol001 => 10_000_000,     // 0.01 SOL
+        }
+    }
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct Game {
     pub game_id: u64,               // Unique game identifier
     pub player1: Pubkey,
     pub player2: Pubkey,
-    pub wager: u64,                 //TODO enum of 1 10 or 100 usd, or maybe custom as well. make sure also only same wager games are matched together.
+    pub wager: WagerAmount,
     pub state: GameState,
     pub player1_move_hash: Option<[u8; 32]>,
     pub player2_move_hash: Option<[u8; 32]>,
