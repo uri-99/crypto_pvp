@@ -100,25 +100,27 @@ dev: validator-start airdrop-all deploy initialize status logs ## Full dev setup
 	@echo "$(GREEN)Development environment ready!$(NC)"
 	@echo "$(YELLOW)Your program is deployed and ready for testing$(NC)"
 
-alice_create: ## Alice creates a game with specified move (usage: make alice_create rock)
-	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
-		echo "$(RED)Usage: make alice_create <rock|paper|scissors>$(NC)"; \
-		echo "$(YELLOW)Example: make alice_create rock$(NC)"; \
+alice_create: ## Alice creates a game with specified wager and move (usage: make alice_create sol01 rock)
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ] || [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
+		echo "$(RED)Usage: make alice_create <wager> <rock|paper|scissors>$(NC)"; \
+		echo "$(YELLOW)Wager options: sol1 (1.0 SOL), sol01 (0.1 SOL), sol001 (0.01 SOL)$(NC)"; \
+		echo "$(YELLOW)Example: make alice_create sol01 rock$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)Alice is creating a game with move: $(filter-out $@,$(MAKECMDGOALS))$(NC)"
+	@echo "$(GREEN)Alice is creating a game with wager: $(word 1,$(filter-out $@,$(MAKECMDGOALS))) and move: $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
 	@echo "$(YELLOW)Game ID will be displayed after creation...$(NC)"
-	ANCHOR_WALLET=$(PLAYER_ALICE_WALLET) yarn create-game $(filter-out $@,$(MAKECMDGOALS))
+	ANCHOR_WALLET=$(PLAYER_ALICE_WALLET) yarn create-game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
 
-bob_create: ## Bob creates a game with specified move (usage: make bob_create paper)
-	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
-		echo "$(RED)Usage: make bob_create <rock|paper|scissors>$(NC)"; \
-		echo "$(YELLOW)Example: make bob_create paper$(NC)"; \
+bob_create: ## Bob creates a game with specified wager and move (usage: make bob_create sol01 paper)
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ] || [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
+		echo "$(RED)Usage: make bob_create <wager> <rock|paper|scissors>$(NC)"; \
+		echo "$(YELLOW)Wager options: sol1 (1.0 SOL), sol01 (0.1 SOL), sol001 (0.01 SOL)$(NC)"; \
+		echo "$(YELLOW)Example: make bob_create sol01 paper$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)Bob is creating a game with move: $(filter-out $@,$(MAKECMDGOALS))$(NC)"
+	@echo "$(GREEN)Bob is creating a game with wager: $(word 1,$(filter-out $@,$(MAKECMDGOALS))) and move: $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
 	@echo "$(YELLOW)Game ID will be displayed after creation...$(NC)"
-	ANCHOR_WALLET=$(PLAYER_BOB_WALLET) yarn create-game $(filter-out $@,$(MAKECMDGOALS))
+	ANCHOR_WALLET=$(PLAYER_BOB_WALLET) yarn create-game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
 
 alice_join: ## Alice joins a game with specified move (usage: make alice_join 123 rock)
 	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ] || [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
