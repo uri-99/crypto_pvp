@@ -12,6 +12,22 @@ import * as path from "path";
 export const MOVE_NAMES = ['Rock', 'Paper', 'Scissors'];
 export const MOVE_MAP = { rock: 0, paper: 1, scissors: 2 } as const;
 
+// Wager amount constants
+export const WAGER_AMOUNTS = {
+  Sol1: { lamports: 1_000_000_000, display: '1.0 SOL' },
+  Sol01: { lamports: 100_000_000, display: '0.1 SOL' },
+  Sol001: { lamports: 10_000_000, display: '0.01 SOL' }
+} as const;
+
+export const WAGER_MAP = { 
+  'sol1': 'Sol1', 
+  '1': 'Sol1',
+  'sol01': 'Sol01', 
+  '0.1': 'Sol01',
+  'sol001': 'Sol001',
+  '0.01': 'Sol001'
+} as const;
+
 // Helper function to create move hash (move + salt)
 export function createMoveHash(move: number, salt: Uint8Array): Uint8Array {
   const moveData = new Uint8Array(33);
@@ -145,4 +161,28 @@ export function formatHash(hash: Uint8Array): string {
 // Helper to convert salt to hex string
 export function saltToHex(salt: Uint8Array): string {
   return Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Helper to validate wager argument
+export function validateWager(wagerArg: string): { variant: string; display: string } {
+  const normalizedWager = wagerArg.toLowerCase();
+  
+  if (!Object.keys(WAGER_MAP).includes(normalizedWager)) {
+    throw new Error(`Invalid wager: ${wagerArg}. Must be one of: sol1, sol01, sol001 (or 1, 0.1, 0.01)`);
+  }
+  
+  const variant = WAGER_MAP[normalizedWager as keyof typeof WAGER_MAP];
+  const display = WAGER_AMOUNTS[variant as keyof typeof WAGER_AMOUNTS].display;
+  
+  return { variant, display };
+}
+
+// Helper to format wager for program call
+export function formatWagerForProgram(wagerVariant: string) {
+  switch (wagerVariant) {
+    case 'Sol1': return { sol1: {} };
+    case 'Sol01': return { sol01: {} };
+    case 'Sol001': return { sol001: {} };
+    default: throw new Error(`Invalid wager variant: ${wagerVariant}`);
+  }
 } 
