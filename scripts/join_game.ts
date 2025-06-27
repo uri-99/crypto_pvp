@@ -21,6 +21,7 @@ async function main() {
   if (!gameIdArg || !moveArg) {
     console.log("Usage: yarn join-game <game_id> <rock|paper|scissors>");
     console.log("Example: yarn join-game 123 rock");
+    console.log("Note: Wager amount is determined by the existing game");
     process.exit(1);
   }
   
@@ -33,6 +34,7 @@ async function main() {
     const program = getProgram();
     
     console.log(`🎮 Joining game ${gameId} with move: ${MOVE_NAMES[move]}`);
+    console.log(`💰 Will match the existing game's wager amount`);
     
     // Generate random salt and create hash
     const salt = generateSalt();
