@@ -46,6 +46,14 @@ async function main() {
     console.log(`Move: ${moveData.move}`);
     console.log(`Salt: ${moveData.salt.slice(0, 8)}...`);
     
+    // Get game data to find player addresses
+    const [gamePda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game"), new anchor.BN(gameId).toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+    
+    const gameAccount = await program.account.game.fetch(gamePda);
+    
     // Convert salt from hex to bytes
     const saltBytes = hexToBytes(moveData.salt);
     
@@ -54,6 +62,10 @@ async function main() {
     
     await program.methods
       .revealMove(new anchor.BN(gameId), moveChoice as any, Array.from(saltBytes))
+      .accounts({
+        player1: gameAccount.player1,
+        player2: gameAccount.player2,
+      })
       .rpc();
     
     console.log("✅ Move revealed successfully!");
