@@ -14,7 +14,7 @@ AUTHORITY_WALLET ?= ~/.config/solana/authority.json
 PLAYER_ALICE_WALLET ?= ~/.config/solana/playerAlice.json
 PLAYER_BOB_WALLET ?= ~/.config/solana/playerBob.json
 
-.PHONY: help setup build deploy test clean validator-start validator-stop airdrop airdrop-all alice_create bob_create alice_join bob_join alice_reveal bob_reveal initialize
+.PHONY: help setup build deploy test clean validator-start validator-stop airdrop airdrop-all alice_create bob_create alice_join bob_join alice_reveal bob_reveal initialize webapp-install webapp webapp-build
 
 help: ## Show this help message
 	@echo "$(GREEN)Crypto PvP Development Commands$(NC)"
@@ -165,6 +165,21 @@ test: ## Run Anchor tests
 test-with-validator: ## Run tests with fresh validator
 	@echo "$(GREEN)Running tests with fresh validator...$(NC)"
 	anchor test
+
+webapp-install: ## Install webapp dependencies
+	@echo "$(GREEN)Installing webapp dependencies...$(NC)"
+	cd app && yarn install
+	@echo "$(GREEN)Webapp dependencies installed!$(NC)"
+
+webapp: ## Start React development server
+	@echo "$(GREEN)Starting React webapp on http://localhost:3000...$(NC)"
+	@echo "$(YELLOW)Press Ctrl+C to stop the server$(NC)"
+	cd app && yarn dev
+
+webapp-build: ## Build webapp for production
+	@echo "$(GREEN)Building webapp for production...$(NC)"
+	cd app && yarn build
+	@echo "$(GREEN)Webapp built successfully!$(NC)"
 
 clean: validator-stop ## Clean build artifacts (keypairs safe in ~/.config/solana/anchor-keys)
 	@echo "$(GREEN)Cleaning build artifacts...$(NC)"
