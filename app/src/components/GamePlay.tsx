@@ -99,12 +99,12 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
           <div className="grid grid-2 gap-8 mb-6">
             <div className="card">
               <h3 className="text-xl font-semibold mb-4">You</h3>
-              <div className="text-6xl mb-2">{getMoveEmoji(mySelectedMove)}</div>
+              <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{getMoveEmoji(mySelectedMove)}</div>
             </div>
             
             <div className="card">
               <h3 className="text-xl font-semibold mb-4">Opponent</h3>
-              <div className="text-6xl mb-2">{getMoveEmoji(opponentMove)}</div>
+              <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{getMoveEmoji(opponentMove)}</div>
             </div>
           </div>
 
