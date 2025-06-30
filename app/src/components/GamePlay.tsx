@@ -268,16 +268,6 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
           {game.status === 'finished' && '✅ Finished'}
         </div>
         
-        {/* Test button to simulate player joining */}
-        {game.status === 'waiting' && !bothPlayersJoined && (
-          <button 
-            className="btn btn-secondary btn-small mt-3"
-            onClick={() => setSimulatedPlayer2Joined(true)}
-          >
-            🧪 Simulate Player 2 Joining
-          </button>
-        )}
-        
         {/* Test button to skip to reveal phase */}
         {bothPlayersJoined && !bothPlayersCommitted && (
           <button 
@@ -338,8 +328,6 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
         </div>
       </div>
 
-
-
       {/* Your Move Info - Only show when move is actually committed */}
       {myMove && bothPlayersCommitted && (
         <div className="card mb-6">
@@ -391,6 +379,18 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
           Winner takes {getWagerDisplay(game.wager)} • Ties split the pot
         </div>
       </div>
+
+      {/* Less intrusive simulate player 2 joining button at the bottom */}
+      {game.status === 'waiting' && !bothPlayersJoined && (
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: 32 }}>
+          <button 
+            className="btn btn-secondary btn-small"
+            onClick={() => setSimulatedPlayer2Joined(true)}
+          >
+            🧪 Simulate Player 2 Joining
+          </button>
+        </div>
+      )}
     </div>
   );
 } 

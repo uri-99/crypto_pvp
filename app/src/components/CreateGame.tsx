@@ -42,16 +42,16 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h2 className="text-2xl font-bold">Create New Game</h2>
-          <p className="text-secondary">Choose your stakes and game format</p>
+          <h2 className="text-4xl font-extrabold" style={{color: 'rgba(255,255,255,0.88)'}}>Create New Game</h2>
+          <p className="text-lg mt-1" style={{color: 'rgba(255,255,255,0.80)'}}>Choose your stakes and game format</p>
         </div>
       </div>
 
       {/* Wager Selection */}
       <div className="card mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <DollarSign size={20} />
-          <h3 className="text-xl font-semibold">Choose Your Wager</h3>
+          <DollarSign size={24} />
+          <h3 className="text-2xl font-bold" style={{color: 'rgba(255,255,255,0.88)'}}>Choose Your Wager</h3>
         </div>
         
         <div className="grid grid-3 gap-3">
@@ -62,21 +62,19 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
               className={`move-option ${selectedWager === option.value ? 'selected' : ''}`}
             >
               <div className="text-4xl mb-2">💰</div>
-              <div className="font-semibold">{option.label}</div>
-              <div className="text-sm text-secondary">{option.description}</div>
+              <div className="font-bold text-xl" style={{color: 'rgba(255,255,255,0.88)'}}>{option.label}</div>
+              <div className="text-base" style={{color: 'rgba(255,255,255,0.70)'}}>{option.description}</div>
             </button>
           ))}
         </div>
         
-        <div className="text-sm text-accent mt-3">
-          Winner takes all • Ties split the pot
-        </div>
+        <div className="text-base text-accent mt-3 font-semibold" style={{color: 'rgba(255,255,255,0.75)'}}>Winner takes all • Ties split the pot</div>
       </div>
 
       {/* Round Selection */}
       <div className="card mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-xl font-semibold">Choose Game Format</h3>
+          <h3 className="text-2xl font-bold" style={{color: 'rgba(255,255,255,0.88)'}}>Choose Game Format</h3>
         </div>
         
         <div className="grid grid-3 gap-3 mb-4">
@@ -87,8 +85,8 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
               className={`move-option ${selectedRounds === option.value ? 'selected' : ''}`}
             >
               <div className="text-4xl mb-2">{option.emoji}</div>
-              <div className="font-semibold">{option.name}</div>
-              <div className="text-sm text-secondary">{option.description}</div>
+              <div className="font-bold text-xl" style={{color: 'rgba(255,255,255,0.88)'}}>{option.name}</div>
+              <div className="text-base" style={{color: 'rgba(255,255,255,0.70)'}}>{option.description}</div>
             </button>
           ))}
         </div>
@@ -99,7 +97,7 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
         <button
           onClick={handleCreateGame}
           disabled={isCreating}
-          className="btn btn-primary btn-large"
+          className="btn btn-primary btn-large text-xl font-bold text-white"
         >
           {isCreating ? (
             <>
@@ -107,15 +105,9 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
               Creating Game...
             </>
           ) : (
-            <>
-              <Plus size={20} />
-              Create {roundOptions.find(r => r.value === selectedRounds)?.name} for {wagerOptions.find(w => w.value === selectedWager)?.label}
-            </>
+            <>Create Match</>
           )}
         </button>
-        <p className="text-sm text-secondary mt-2">
-          {roundOptions.find(r => r.value === selectedRounds)?.description}
-        </p>
       </div>
     </div>
   );
