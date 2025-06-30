@@ -86,23 +86,25 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
         </div>
 
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-6">
-            {result === 'win' && '🎉 YOU WIN!'}
-            {result === 'lose' && '💀 YOU LOSE!'}
-            {result === 'tie' && '🤝 IT\'S A TIE!'}
+          <div style={{ fontSize: '7rem', marginBottom: '1.5rem' }}>
+            {result === 'win' && '🎉'}
+            {result === 'lose' && '💀'}
+            {result === 'tie' && '🤝'}
+          </div>
+          <h1 className="text-4xl font-extrabold mb-6">
+            {result === 'win' && 'YOU WIN!'}
+            {result === 'lose' && 'YOU LOSE!'}
+            {result === 'tie' && 'IT\'S A TIE!'}
           </h1>
-          
           <div className="grid grid-2 gap-8 mb-6">
             <div className="card">
               <h3 className="text-xl font-semibold mb-4">You</h3>
               <div className="text-6xl mb-2">{getMoveEmoji(mySelectedMove)}</div>
-              <div className="text-xl font-semibold">{mySelectedMove}</div>
             </div>
             
             <div className="card">
               <h3 className="text-xl font-semibold mb-4">Opponent</h3>
               <div className="text-6xl mb-2">{getMoveEmoji(opponentMove)}</div>
-              <div className="text-xl font-semibold">{opponentMove}</div>
             </div>
           </div>
 
@@ -139,22 +141,35 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
           </div>
         </div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-6">👁️ REVEAL TIME!</h1>
-          <p className="text-xl text-secondary mb-8">Both players have chosen their moves</p>
-        </div>
-
-        <div className="text-center">
-          <button 
-            onClick={() => {
-              setOpponentMove(getRandomOpponentMove());
-              setShowResults(true);
-            }}
-            className="btn btn-success btn-large"
-            style={{ fontSize: '20px', padding: '16px 32px' }}
-          >
-            🎯 Reveal Your Move!
-          </button>
+        <div className="flex justify-center">
+          <div style={{
+            background: 'var(--surface)',
+            borderRadius: '24px',
+            padding: '3rem 2rem',
+            boxShadow: '0 0 32px 4px rgba(99,102,241,0.25)',
+            border: '2px solid var(--primary)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
+            maxWidth: 480
+          }}>
+            <div style={{ fontSize: '5rem', marginBottom: '1.5rem', filter: 'drop-shadow(0 0 16px #6366f1)' }}>
+              👁️
+            </div>
+            <h1 className="text-4xl font-extrabold mb-4" style={{color: 'rgba(255,255,255,0.95)'}}>Moment of Truth!</h1>
+            <p className="text-lg mb-8" style={{color: 'rgba(255,255,255,0.75)', textAlign: 'center'}}>Both players have locked in their moves.<br/>Are you ready to reveal?</p>
+            <button 
+              onClick={() => {
+                setOpponentMove(getRandomOpponentMove());
+                setShowResults(true);
+              }}
+              className="btn btn-success btn-large"
+              style={{ fontSize: '1.5rem', padding: '20px 48px', boxShadow: '0 0 16px 2px #10b98155' }}
+            >
+              🎯 Reveal Now
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -209,9 +224,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
 
         {/* BIG ROCK PAPER SCISSORS PAGE */}
         <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold mb-4">🪨📄✂️</h1>
           <h2 className="text-4xl font-bold mb-6" style={{color: 'rgba(255,255,255,0.88)'}}>Rock, Paper, Scissors... SHOOT!</h2>
-          <p className="text-xl mb-8" style={{color: 'rgba(255,255,255,0.80)'}}>Choose your weapon!</p>
         </div>
 
         <div className="grid grid-3 gap-6 mb-8">
