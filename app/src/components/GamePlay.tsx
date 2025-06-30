@@ -210,8 +210,8 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
         {/* BIG ROCK PAPER SCISSORS PAGE */}
         <div className="text-center mb-8">
           <h1 className="text-6xl font-bold mb-4">🪨📄✂️</h1>
-          <h2 className="text-4xl font-bold mb-6">Rock, Paper, Scissors... SHOOT!</h2>
-          <p className="text-xl text-secondary mb-8">Choose your weapon!</p>
+          <h2 className="text-4xl font-bold mb-6" style={{color: 'rgba(255,255,255,0.88)'}}>Rock, Paper, Scissors... SHOOT!</h2>
+          <p className="text-xl mb-8" style={{color: 'rgba(255,255,255,0.80)'}}>Choose your weapon!</p>
         </div>
 
         <div className="grid grid-3 gap-6 mb-8">
@@ -226,8 +226,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
               className={`move-option ${mySelectedMove === option.value ? 'selected' : ''}`}
               style={{ padding: '2rem', minHeight: '160px' }}
             >
-              <div className="text-6xl mb-3">{option.emoji}</div>
-              <div className="font-bold text-xl">{option.name}</div>
+              <div style={{ fontSize: '6rem', marginBottom: '0.5rem' }}>{option.emoji}</div>
             </button>
           ))}
         </div>
