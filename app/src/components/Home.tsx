@@ -8,9 +8,9 @@ interface HomeProps {
 export function Home({ onCreateGame, onJoinGame }: HomeProps) {
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Title Section */}
-      <div className="card mb-6 text-center" style={{background: 'var(--surface)'}}>
-        <h2 className="text-4xl font-extrabold mb-2" style={{color: 'rgba(255,255,255,0.88)'}}>⚔️ Crypto PvP</h2>
+      {/* Title Section (no card) */}
+      <div className="text-center mb-6">
+        <h2 className="text-4xl font-extrabold mb-2" style={{color: 'rgba(255,255,255,0.88)'}}>⚔️ Crypto PvP — Rock Paper Scissors</h2>
         <p className="text-lg mb-1" style={{color: 'rgba(255,255,255,0.80)'}}>Challenge opponents in rock-paper-scissors with SOL stakes!</p>
       </div>
 

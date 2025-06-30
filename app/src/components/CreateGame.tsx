@@ -36,32 +36,32 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="max-w-2xl mx-auto" style={{paddingTop: '4px', paddingBottom: '16px'}}>
+      <div className="flex items-center gap-4 mb-2" style={{marginTop: 0}}>
         <button onClick={onBack} className="btn btn-secondary">
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h2 className="text-4xl font-extrabold" style={{color: 'rgba(255,255,255,0.88)'}}>Create New Game</h2>
-          <p className="text-lg mt-1" style={{color: 'rgba(255,255,255,0.80)'}}>Choose your stakes and game format</p>
+          <h2 className="text-3xl font-extrabold" style={{color: 'rgba(255,255,255,0.88)'}}>Create New Game</h2>
+          <p className="text-base mt-1" style={{color: 'rgba(255,255,255,0.80)'}}>Choose your stakes and game format</p>
         </div>
       </div>
 
       {/* Wager Selection */}
-      <div className="card mb-6">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="card mb-4" style={{padding: '1rem'}}>
+        <div className="flex items-center gap-2 mb-2">
           <DollarSign size={24} />
           <h3 className="text-2xl font-bold" style={{color: 'rgba(255,255,255,0.88)'}}>Choose Your Wager</h3>
         </div>
         
-        <div className="grid grid-3 gap-3">
+        <div className="grid grid-3 gap-2">
           {wagerOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => setSelectedWager(option.value)}
               className={`move-option ${selectedWager === option.value ? 'selected' : ''}`}
             >
-              <div className="text-4xl mb-2">💰</div>
+              <div className="text-3xl mb-1">💰</div>
               <div className="font-bold text-xl" style={{color: 'rgba(255,255,255,0.88)'}}>{option.label}</div>
               <div className="text-base" style={{color: 'rgba(255,255,255,0.70)'}}>{option.description}</div>
             </button>
@@ -72,19 +72,19 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
       </div>
 
       {/* Round Selection */}
-      <div className="card mb-6">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="card mb-4" style={{padding: '1rem'}}>
+        <div className="flex items-center gap-2 mb-2">
           <h3 className="text-2xl font-bold" style={{color: 'rgba(255,255,255,0.88)'}}>Choose Game Format</h3>
         </div>
         
-        <div className="grid grid-3 gap-3 mb-4">
+        <div className="grid grid-3 gap-2 mb-2">
           {roundOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => setSelectedRounds(option.value)}
               className={`move-option ${selectedRounds === option.value ? 'selected' : ''}`}
             >
-              <div className="text-4xl mb-2">{option.emoji}</div>
+              <div className="text-3xl mb-1">{option.emoji}</div>
               <div className="font-bold text-xl" style={{color: 'rgba(255,255,255,0.88)'}}>{option.name}</div>
               <div className="text-base" style={{color: 'rgba(255,255,255,0.70)'}}>{option.description}</div>
             </button>
@@ -93,7 +93,7 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
       </div>
 
       {/* Create Button */}
-      <div className="text-center">
+      <div className="text-center mt-2">
         <button
           onClick={handleCreateGame}
           disabled={isCreating}

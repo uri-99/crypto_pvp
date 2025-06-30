@@ -85,26 +85,26 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
           </div>
         </div>
 
-        <div className="text-center mb-8">
-          <div style={{ fontSize: '7rem', marginBottom: '1.5rem' }}>
+        <div className="text-center mb-4">
+          <div style={{ fontSize: '4.5rem', marginBottom: '1rem' }}>
             {result === 'win' && '🎉'}
             {result === 'lose' && '💀'}
             {result === 'tie' && '🤝'}
           </div>
-          <h1 className="text-4xl font-extrabold mb-6">
+          <h1 className="text-3xl font-extrabold mb-4">
             {result === 'win' && 'YOU WIN!'}
             {result === 'lose' && 'YOU LOSE!'}
             {result === 'tie' && 'IT\'S A TIE!'}
           </h1>
-          <div className="grid grid-2 gap-8 mb-6">
+          <div className="grid grid-2 gap-6 mb-4">
             <div className="card">
               <h3 className="text-xl font-semibold mb-4">You</h3>
-              <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{getMoveEmoji(mySelectedMove)}</div>
+              <div style={{ fontSize: '3rem', marginBottom: '0.25rem' }}>{getMoveEmoji(mySelectedMove)}</div>
             </div>
             
             <div className="card">
               <h3 className="text-xl font-semibold mb-4">Opponent</h3>
-              <div style={{ fontSize: '5rem', marginBottom: '0.5rem' }}>{getMoveEmoji(opponentMove)}</div>
+              <div style={{ fontSize: '3rem', marginBottom: '0.25rem' }}>{getMoveEmoji(opponentMove)}</div>
             </div>
           </div>
 
