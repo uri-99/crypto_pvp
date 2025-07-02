@@ -1,41 +1,31 @@
 import * as anchor from "@coral-xyz/anchor";
 import {
-  MOVE_NAMES,
-  validateMove,
   validateWager,
   formatWagerForProgram,
   getProgram,
   getGlobalState,
-  generateSalt,
-  createMoveHash,
-  saveMove,
-  getPlayerFromWallet,
-  formatSalt,
-  formatHash,
-  saltToHex
+  getPlayerFromWallet
 } from "./utils";
 
 async function main() {
-  // Get wager and move from command line arguments
+  // Get wager from command line arguments
   const wagerArg = process.argv[2];
-  const moveArg = process.argv[3];
   
-  if (!wagerArg || !moveArg) {
-    console.log("Usage: yarn create-game <wager> <rock|paper|scissors>");
+  if (!wagerArg) {
+    console.log("Usage: yarn create-game <wager>");
     console.log("Wager options: sol1 (1.0 SOL), sol01 (0.1 SOL), sol001 (0.01 SOL)");
-    console.log("Example: yarn create-game sol01 rock");
+    console.log("Example: yarn create-game sol01");
     process.exit(1);
   }
   
   try {
-    // Validate wager and move
+    // Validate wager
     const wagerInfo = validateWager(wagerArg);
-    const move = validateMove(moveArg);
     
     // Get program instance
     const program = getProgram();
     
-    console.log(`🎮 Creating game with move: ${MOVE_NAMES[move]}`);
+    console.log(`🎮 Creating game`);
     console.log(`💰 Wager: ${wagerInfo.display}`);
     
     // Get current game counter before creating
@@ -44,38 +34,27 @@ async function main() {
     
     console.log(`📊 Current game counter: ${gameId}`);
     
-    // Generate random salt and create hash
-    const salt = generateSalt();
-    const moveHash = createMoveHash(move, salt);
-    
-    console.log(`Salt: ${formatSalt(salt)}...`);
-    console.log(`Hash: ${formatHash(moveHash)}...`);
-    
     // Create game with selected wager amount
     const wagerEnum = formatWagerForProgram(wagerInfo.variant);
     
     await program.methods
-      .createGame(wagerEnum as any, Array.from(moveHash))
+      .createGame(wagerEnum as any)
       .rpc();
     
     console.log("✅ Game created successfully!");
     console.log(`🎯 Game ID: ${gameId}`);
-    console.log(`Move committed: ${MOVE_NAMES[move]}`);
     console.log(`Wager: ${wagerInfo.display}`);
     
-    // Save move to moves.json
-    const saltHex = saltToHex(salt);
+    // Output instructions for next step
     const player = getPlayerFromWallet();
-    
-    saveMove(player, gameId.toNumber(), moveArg.toLowerCase(), saltHex);
-    
-    console.log("");
-    console.log("🔑 Move and salt saved to moves.json");
     console.log("");
     console.log("📝 To join this game, use:");
-    console.log(`make alice_join ${gameId} <move>`);
+    console.log(`make alice_join ${gameId}`);
     console.log("or");
-    console.log(`make bob_join ${gameId} <move>`);
+    console.log(`make bob_join ${gameId}`);
+    console.log("");
+    console.log("📝 After both players have joined, use the commit-move script to commit your move:");
+    console.log(`yarn commit-move ${gameId} <rock|paper|scissors>`);
     
   } catch (error) {
     console.error("❌ Error creating game:", error);
