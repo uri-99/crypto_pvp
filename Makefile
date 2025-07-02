@@ -100,45 +100,64 @@ dev: validator-start airdrop-all deploy initialize status logs ## Full dev setup
 	@echo "$(GREEN)Development environment ready!$(NC)"
 	@echo "$(YELLOW)Your program is deployed and ready for testing$(NC)"
 
-alice_create: ## Alice creates a game with specified wager and move (usage: make alice_create sol01 rock)
-	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ] || [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
-		echo "$(RED)Usage: make alice_create <wager> <rock|paper|scissors>$(NC)"; \
+alice_create: ## Alice creates a game with specified wager (usage: make alice_create sol01)
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		echo "$(RED)Usage: make alice_create <wager>$(NC)"; \
 		echo "$(YELLOW)Wager options: sol1 (1.0 SOL), sol01 (0.1 SOL), sol001 (0.01 SOL)$(NC)"; \
-		echo "$(YELLOW)Example: make alice_create sol01 rock$(NC)"; \
+		echo "$(YELLOW)Example: make alice_create sol01$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)Alice is creating a game with wager: $(word 1,$(filter-out $@,$(MAKECMDGOALS))) and move: $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
+	@echo "$(GREEN)Alice is creating a game with wager: $(filter-out $@,$(MAKECMDGOALS))$(NC)"
 	@echo "$(YELLOW)Game ID will be displayed after creation...$(NC)"
-	ANCHOR_WALLET=$(PLAYER_ALICE_WALLET) yarn create-game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
+	ANCHOR_WALLET=$(PLAYER_ALICE_WALLET) yarn create-game $(filter-out $@,$(MAKECMDGOALS))
 
-bob_create: ## Bob creates a game with specified wager and move (usage: make bob_create sol01 paper)
-	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ] || [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
-		echo "$(RED)Usage: make bob_create <wager> <rock|paper|scissors>$(NC)"; \
+bob_create: ## Bob creates a game with specified wager (usage: make bob_create sol01)
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		echo "$(RED)Usage: make bob_create <wager>$(NC)"; \
 		echo "$(YELLOW)Wager options: sol1 (1.0 SOL), sol01 (0.1 SOL), sol001 (0.01 SOL)$(NC)"; \
-		echo "$(YELLOW)Example: make bob_create sol01 paper$(NC)"; \
+		echo "$(YELLOW)Example: make bob_create sol01$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)Bob is creating a game with wager: $(word 1,$(filter-out $@,$(MAKECMDGOALS))) and move: $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
+	@echo "$(GREEN)Bob is creating a game with wager: $(filter-out $@,$(MAKECMDGOALS))$(NC)"
 	@echo "$(YELLOW)Game ID will be displayed after creation...$(NC)"
-	ANCHOR_WALLET=$(PLAYER_BOB_WALLET) yarn create-game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
+	ANCHOR_WALLET=$(PLAYER_BOB_WALLET) yarn create-game $(filter-out $@,$(MAKECMDGOALS))
 
-alice_join: ## Alice joins a game with specified move (usage: make alice_join 123 rock)
-	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ] || [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
-		echo "$(RED)Usage: make alice_join <game_id> <rock|paper|scissors>$(NC)"; \
-		echo "$(YELLOW)Example: make alice_join 123 rock$(NC)"; \
+alice_join: ## Alice joins a game (usage: make alice_join 123)
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		echo "$(RED)Usage: make alice_join <game_id>$(NC)"; \
+		echo "$(YELLOW)Example: make alice_join 123$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)Alice is joining game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) with move: $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
-	ANCHOR_WALLET=$(PLAYER_ALICE_WALLET) yarn join-game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
+	@echo "$(GREEN)Alice is joining game $(filter-out $@,$(MAKECMDGOALS))$(NC)"
+	ANCHOR_WALLET=$(PLAYER_ALICE_WALLET) yarn join-game $(filter-out $@,$(MAKECMDGOALS))
 
-bob_join: ## Bob joins a game with specified move (usage: make bob_join 123 paper)
-	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ] || [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
-		echo "$(RED)Usage: make bob_join <game_id> <rock|paper|scissors>$(NC)"; \
-		echo "$(YELLOW)Example: make bob_join 123 paper$(NC)"; \
+bob_join: ## Bob joins a game (usage: make bob_join 123)
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		echo "$(RED)Usage: make bob_join <game_id>$(NC)"; \
+		echo "$(YELLOW)Example: make bob_join 123$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)Bob is joining game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) with move: $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
-	ANCHOR_WALLET=$(PLAYER_BOB_WALLET) yarn join-game $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
+	@echo "$(GREEN)Bob is joining game $(filter-out $@,$(MAKECMDGOALS))$(NC)"
+	ANCHOR_WALLET=$(PLAYER_BOB_WALLET) yarn join-game $(filter-out $@,$(MAKECMDGOALS))
+
+alice_commit: ## Alice commits her move (usage: make alice_commit 123 rock)
+	@if [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
+		echo "$(RED)Usage: make alice_commit <game_id> <rock|paper|scissors>$(NC)"; \
+		echo "$(YELLOW)Example: make alice_commit 123 rock$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Alice is committing her move for game $(word 1,$(filter-out $@,$(MAKECMDGOALS))): $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
+	ANCHOR_WALLET=$(PLAYER_ALICE_WALLET) yarn commit-move $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
+
+bob_commit: ## Bob commits his move (usage: make bob_commit 123 paper)
+	@if [ -z "$(word 2,$(filter-out $@,$(MAKECMDGOALS)))" ]; then \
+		echo "$(RED)Usage: make bob_commit <game_id> <rock|paper|scissors>$(NC)"; \
+		echo "$(YELLOW)Example: make bob_commit 123 paper$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Bob is committing his move for game $(word 1,$(filter-out $@,$(MAKECMDGOALS))): $(word 2,$(filter-out $@,$(MAKECMDGOALS)))$(NC)"
+	ANCHOR_WALLET=$(PLAYER_BOB_WALLET) yarn commit-move $(word 1,$(filter-out $@,$(MAKECMDGOALS))) $(word 2,$(filter-out $@,$(MAKECMDGOALS)))
+
 
 alice_reveal: ## Alice reveals her move for a game (usage: make alice_reveal 123)
 	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
