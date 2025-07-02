@@ -69,6 +69,7 @@ pub struct Game {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
 pub enum GameState {
     WaitingForPlayer,
+    CommitPhase,
     RevealPhase,
     Finished,
 }
