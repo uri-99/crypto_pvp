@@ -34,7 +34,7 @@ pub mod crypto_pvp {
     //TODO function allowing closing of players for users to reclaim rent?
 
     // Creates a new game with player1's commit
-    pub fn create_game(ctx: Context<CreateGame>, wager: WagerAmount, move_hash: [u8; 32]) -> Result<()> {
+    pub fn create_game(ctx: Context<CreateGame>, wager: WagerAmount) -> Result<()> {
         let global_state = &mut ctx.accounts.global_state;
         let game = &mut ctx.accounts.game;
 
@@ -50,7 +50,7 @@ pub mod crypto_pvp {
         game.player1 = ctx.accounts.player.key();
         game.player2 = Pubkey::default();
         game.wager = wager;
-        game.state = GameState::WaitingForPlayer; // Player1 has committed, waiting for player2 to join
+        game.state = GameState::WaitingForPlayer; // Player1 has created, waiting for player2 to join
         game.winner_type = None;
         game.winner_address = None;
         game.bump = ctx.bumps.game;
@@ -67,26 +67,18 @@ pub mod crypto_pvp {
             ),
             wager_lamports,
         )?;
-        
-        // Commit player1's move
-        commit_move_helper(
-            game,
-            &mut ctx.accounts.player1_profile,
-            &ctx.accounts.player.key(),
-            move_hash,
-        )?;
 
         // Update player1's wagering stats
         ctx.accounts.player1_profile.total_wagered += wager_lamports;
         // Update global stats
         global_state.game_counter += 1;
         
-        msg!("Game #{} created and move committed by player1: {}, wager: {} lamports", 
+        msg!("Game #{} created by player1: {}, wager: {} lamports", 
              game.game_id, ctx.accounts.player.key(), wager.to_lamports());
         Ok(())
     }
 
-    pub fn join_game(ctx: Context<JoinGame>, _game_id: u64, move_hash: [u8; 32]) -> Result<()> {
+    pub fn join_game(ctx: Context<JoinGame>, _game_id: u64) -> Result<()> {
         let game = &mut ctx.accounts.game;
 
         // Initialize player profile if needed (with default name)
@@ -113,23 +105,15 @@ pub mod crypto_pvp {
             ),
             wager_lamports,
         )?;
-        
-        // Commit player2's move
-        commit_move_helper(
-            game,
-            &mut ctx.accounts.player2_profile,
-            &ctx.accounts.player.key(),
-            move_hash,
-        )?;
-        
+
         // Update player2's wagering stats
         ctx.accounts.player2_profile.total_wagered += wager_lamports;
-        // Since both players have now committed, advance to reveal phase
-        game.state = GameState::RevealPhase;
+        // After both players joined, advance to commit phase
+        game.state = GameState::CommitPhase;
         
         //TODO change to event emition?
-        msg!("Player2 joined game #{} and committed move: {}", game.game_id, ctx.accounts.player.key());
-        msg!("Game #{} advanced to reveal phase", game.game_id);
+        msg!("Player2 joined game #{}: {}", game.game_id, ctx.accounts.player.key());
+        msg!("Game advanced to commit phase");
         Ok(())
     }
 
@@ -284,6 +268,33 @@ pub mod crypto_pvp {
         let player_profile = &mut ctx.accounts.player_profile;
         player_profile.name = new_name;
         msg!("Player {} updated name to: {}", ctx.accounts.player.key(), player_profile.name);
+        Ok(())
+    }
+
+    //QUESTION game_id unused variable?
+    pub fn commit_move(ctx: Context<CommitMove>, _game_id: u64, move_hash: [u8; 32]) -> Result<()> {
+        let game = &mut ctx.accounts.game;
+        let player = ctx.accounts.player.key();
+
+        require!(game.state == GameState::CommitPhase, GameError::InvalidGameState);
+        require!(player == game.player1 || player == game.player2, GameError::NotPlayerInGame);
+
+        // Commit the move for the calling player (profile is always the caller's)
+        commit_move_helper(
+            game,
+            &mut ctx.accounts.player_profile,
+            &player,
+            move_hash,
+        )?;
+
+        // If both players have committed, advance to reveal phase
+        if game.player1_move_hash.is_some() && game.player2_move_hash.is_some() {
+            game.state = GameState::RevealPhase;
+            msg!("Both players committed. Game #{} advanced to reveal phase", game.game_id);
+        } else {
+            msg!("Player {} committed move in game #{}", player, game.game_id);
+            msg!("Waiting for the other player");
+        }
         Ok(())
     }
 }
@@ -592,4 +603,22 @@ pub struct ClaimTimeoutVictory<'info> {
     /// CHECK: Player2 account for payout  
     #[account(mut, address = game.player2)]
     pub player2: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(game_id: u64)]
+pub struct CommitMove<'info> {
+    #[account(
+        mut,
+        seeds = [b"game", game_id.to_le_bytes().as_ref()],
+        bump = game.bump
+    )]
+    pub game: Account<'info, Game>,
+    pub player: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"player_profile", player.key().as_ref()],
+        bump = player_profile.bump
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
 }
