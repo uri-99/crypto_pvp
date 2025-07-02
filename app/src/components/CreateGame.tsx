@@ -1,16 +1,24 @@
 import { useState } from 'react';
 import { WagerAmount, Move } from '../App';
-import { ArrowLeft, Plus, DollarSign } from 'lucide-react';
+import { ArrowLeft, DollarSign } from 'lucide-react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
+import idl from '../idl/crypto_pvp.json';
 
 interface CreateGameProps {
-  onCreateGame: (wager: WagerAmount, move: Move) => void;
+  onCreateGame: (_wager: WagerAmount, _move: Move) => void;
   onBack: () => void;
 }
+
+const PROGRAM_ID = new web3.PublicKey(idl.address);
 
 export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
   const [selectedWager, setSelectedWager] = useState<WagerAmount>('sol01');
   const [selectedRounds, setSelectedRounds] = useState<1 | 3 | 5>(1);
   const [isCreating, setIsCreating] = useState(false);
+  const { connection } = useConnection();
+  const wallet = useWallet();
 
   const wagerOptions: { value: WagerAmount; label: string; description: string }[] = [
     { value: 'sol001', label: '0.01 SOL', description: 'Starter Stakes' },
@@ -24,14 +32,78 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
     { value: 5, emoji: '👑', name: 'Championship', description: 'Best of 5 rounds' },
   ];
 
+  const getWagerEnum = (wager: WagerAmount) => {
+    switch (wager) {
+      case 'sol001': return { sol001: {} };
+      case 'sol01': return { sol01: {} }; 
+      case 'sol1': return { sol1: {} };
+      default: return { sol01: {} };
+    }
+  };
+
   const handleCreateGame = async () => {
     setIsCreating(true);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // For now, we'll use a default move since rounds selection is separate
-    onCreateGame(selectedWager, 'rock');
+    try {
+      if (!wallet.publicKey) throw new Error('Wallet not connected');
+      if (!wallet) throw new Error('Wallet not available');
+      if (!connection) throw new Error('Connection not available');
+      
+      // Generate random salt
+      const saltArr = new Uint8Array(32);
+      crypto.getRandomValues(saltArr);
+      
+      // For demo, use 'rock' as move
+      const move = 'rock';
+      
+      // Hash move+salt (move as 0=rock, 1=paper, 2=scissors)
+      const moveIdx = 0; // rock
+      const moveData = new Uint8Array([moveIdx, ...saltArr]); // [move, ...salt]
+      
+      // Use browser crypto.subtle.digest for SHA-256
+      const hashBuffer = await crypto.subtle.digest('SHA-256', moveData);
+      const moveHash = new Uint8Array(hashBuffer);
+      
+      // Derive PDAs
+      const [globalStatePda] = await web3.PublicKey.findProgramAddress([
+        Buffer.from('global_state')
+      ], PROGRAM_ID);
+      
+      // Fetch global state to get game_counter
+      const opts = AnchorProvider.defaultOptions();
+      const provider = new AnchorProvider(connection, wallet as any, opts);
+      const program = new Program(idl as any, provider);
+      
+      const globalState = await (program.account as any).globalState.fetch(globalStatePda);
+      const gameCounter = (globalState as any).gameCounter.toNumber();
+      
+      const [gamePda] = await web3.PublicKey.findProgramAddress([
+        Buffer.from('game'),
+        new BN(gameCounter).toArrayLike(Buffer, 'le', 8)
+      ], PROGRAM_ID);
+      
+      const [playerProfilePda] = await web3.PublicKey.findProgramAddress([
+        Buffer.from('player_profile'),
+        wallet.publicKey.toBytes()
+      ], PROGRAM_ID);
+      
+      // Send transaction
+      await program.methods.createGame(
+        getWagerEnum(selectedWager),
+        moveHash
+      ).accounts({
+        game: gamePda,
+        globalState: globalStatePda,
+        player: wallet.publicKey,
+        player1Profile: playerProfilePda,
+        systemProgram: web3.SystemProgram.programId,
+      }).rpc();
+      
+      // Call parent handler (for UI state)
+      onCreateGame(selectedWager, move as Move);
+    } catch (e) {
+      console.error('Error details:', e);
+      alert('Error creating game: ' + (e instanceof Error ? e.message : e));
+    }
     setIsCreating(false);
   };
 

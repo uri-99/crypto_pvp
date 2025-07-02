@@ -6,7 +6,8 @@
     "initialize": "ts-node scripts/initialize.ts",
     "create-game": "ts-node scripts/create_game.ts",
     "join-game": "ts-node scripts/join_game.ts",
-    "reveal-move": "ts-node scripts/reveal_move.ts"
+    "reveal-move": "ts-node scripts/reveal_move.ts",
+    "commit-move": "ts-node scripts/commit_move.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Home } from './components/Home';
 import { CreateGame } from './components/CreateGame';
 import { JoinGame } from './components/JoinGame';
 import { GamePlay } from './components/GamePlay';
 import { GameResult } from './components/GameResult';
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 export type GameView = 'home' | 'create' | 'join' | 'play' | 'result';
 export type Move = 'rock' | 'paper' | 'scissors';
@@ -27,6 +30,10 @@ function App() {
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [playerAddress] = useState('mock_player_address');
+
+  // Solana wallet setup
+  const endpoint = useMemo(() => 'http://localhost:8899', []);
+  const wallets = useMemo(() => [], []);
 
   const handleCreateGame = (wager: WagerAmount, move: Move) => {
     const newGame: Game = {
@@ -104,54 +111,70 @@ function App() {
   const availableGames = games.filter(g => g.status === 'waiting' && g.player1 !== playerAddress);
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--text)' }}>
-      <div className="container">
-        <div className="py-8">
-          {currentView === 'home' && (
-            <Home
-              onCreateGame={() => setCurrentView('create')}
-              onJoinGame={() => setCurrentView('join')}
-            />
-          )}
-          
-          {currentView === 'create' && (
-            <CreateGame
-              onCreateGame={handleCreateGame}
-              onBack={handleBackToHome}
-            />
-          )}
-          
-          {currentView === 'join' && (
-            <JoinGame
-              games={availableGames}
-              onJoinGame={handleJoinGame}
-              onBack={handleBackToHome}
-              getWagerDisplay={getWagerDisplay}
-            />
-          )}
-          
-          {currentView === 'play' && currentGame && (
-            <GamePlay
-              game={currentGame}
-              onRevealMoves={handleRevealMoves}
-              onBack={handleBackToHome}
-              getWagerDisplay={getWagerDisplay}
-              playerAddress={playerAddress}
-            />
-          )}
-          
-          {currentView === 'result' && currentGame && (
-            <GameResult
-              game={currentGame}
-              onPlayAgain={() => setCurrentView('create')}
-              onBackToHome={handleBackToHome}
-              getWagerDisplay={getWagerDisplay}
-              playerAddress={playerAddress}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets}>
+        <WalletModalProvider>
+          <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--text)', paddingTop: 40 }}>
+            <div className="container">
+              <div className="py-8">
+                {currentView === 'home' && (
+                  <>
+                    <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+                      <WalletMultiButton />
+                    </div>
+                    <Home
+                      onCreateGame={() => setCurrentView('create')}
+                      onJoinGame={() => setCurrentView('join')}
+                    />
+                  </>
+                )}
+                
+                {currentView === 'create' && (
+                  <>
+                    <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+                      <WalletMultiButton />
+                    </div>
+                    <CreateGame
+                      onCreateGame={handleCreateGame}
+                      onBack={handleBackToHome}
+                    />
+                  </>
+                )}
+                
+                {currentView === 'join' && (
+                  <JoinGame
+                    games={availableGames}
+                    onJoinGame={handleJoinGame}
+                    onBack={handleBackToHome}
+                    getWagerDisplay={getWagerDisplay}
+                  />
+                )}
+                
+                {currentView === 'play' && currentGame && (
+                  <GamePlay
+                    game={currentGame}
+                    onRevealMoves={handleRevealMoves}
+                    onBack={handleBackToHome}
+                    getWagerDisplay={getWagerDisplay}
+                    playerAddress={playerAddress}
+                  />
+                )}
+                
+                {currentView === 'result' && currentGame && (
+                  <GameResult
+                    game={currentGame}
+                    onPlayAgain={() => setCurrentView('create')}
+                    onBackToHome={handleBackToHome}
+                    getWagerDisplay={getWagerDisplay}
+                    playerAddress={playerAddress}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }
 
