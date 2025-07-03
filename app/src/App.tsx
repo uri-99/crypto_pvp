@@ -7,7 +7,10 @@ import { GameResult } from './components/GameResult';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useGames } from './utils/useGames';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { AnchorProvider, Program, BN, web3 } from '@coral-xyz/anchor';
+import idl from './idl/crypto_pvp.json';
+
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export type GameView = 'home' | 'create' | 'join' | 'play' | 'result';
@@ -18,7 +21,9 @@ export type GameStatus = 'waiting' | 'active' | 'revealing' | 'finished';
 export interface Game {
   id: string;
   player1: string;
+  player1Name?: string;
   player2?: string;
+  player2Name?: string;
   wager: WagerAmount;
   status: GameStatus;
   player1Move?: Move;
@@ -30,31 +35,58 @@ export interface Game {
 function AppContent() {
   const [currentView, setCurrentView] = useState<GameView>('home');
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
-  const { games, loading, refreshGames } = useGames();
   const wallet = useWallet();
 
   const handleCreateGame = (_wager: WagerAmount, _move: Move) => {
-    // After creating game on blockchain, refresh the games list
+    // After creating game on blockchain, go back to home
     setTimeout(() => {
-      refreshGames();
-      setCurrentView('home'); // Go back to home to see the created game
+      setCurrentView('home');
     }, 2000);
   };
 
-  const handleJoinGame = (gameId: string, move: Move) => {
-    // TODO: Implement join game blockchain logic
-    console.log('Joining game:', gameId, 'with move:', move);
-    
-    // For now, just go to play view
-    const game = games.find(g => g.id === gameId);
-    if (game) {
+  const handleJoinGame = async (gameId: string, _move: Move) => {
+    try {
+      if (!wallet.publicKey) throw new Error('Wallet not connected');
+      
+      const connection = new Connection('http://localhost:8899');
+      const PROGRAM_ID = new PublicKey(idl.address);
+      
+      const provider = new AnchorProvider(connection, wallet as any, AnchorProvider.defaultOptions());
+      const program = new Program(idl as any, provider);
+      
+      // Find the game PDA
+      const [gamePda] = await PublicKey.findProgramAddress([
+        Buffer.from('game'),
+        new BN(parseInt(gameId)).toArrayLike(Buffer, 'le', 8)
+      ], PROGRAM_ID);
+      
+      const [playerProfilePda] = await PublicKey.findProgramAddress([
+        Buffer.from('player_profile'),
+        wallet.publicKey.toBytes()
+      ], PROGRAM_ID);
+      
+      // Join the game
+      await program.methods.joinGame().accounts({
+        game: gamePda,
+        player: wallet.publicKey,
+        player2Profile: playerProfilePda,
+        systemProgram: web3.SystemProgram.programId,
+      }).rpc();
+      
+      // Update UI state - go to play view
       setCurrentGame({
-        ...game,
-        player2: wallet.publicKey?.toString(),
-        player2Move: move,
-        status: 'revealing',
+        id: gameId,
+        player1: 'Player 1', // Will be updated when we fetch player names
+        player2: wallet.publicKey?.toString() || 'Player 2',
+        wager: 'sol01', // Will be fetched from blockchain
+        status: 'active',
+        createdAt: new Date(),
       });
       setCurrentView('play');
+      
+    } catch (error) {
+      console.error('Error joining game:', error);
+      alert('Error joining game: ' + (error instanceof Error ? error.message : error));
     }
   };
 
@@ -80,11 +112,7 @@ function AppContent() {
     }
   };
 
-  // Filter games to show only those waiting for players (excluding current user's games)
-  const availableGames = games.filter(g => 
-    g.status === 'waiting' && 
-    g.player1 !== wallet.publicKey?.toString()
-  );
+
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--text)', paddingTop: 40 }}>
@@ -98,6 +126,11 @@ function AppContent() {
               <Home
                 onCreateGame={() => setCurrentView('create')}
                 onJoinGame={() => setCurrentView('join')}
+                onRejoinGame={(game: Game) => {
+                  setCurrentGame(game);
+                  setCurrentView('play');
+                }}
+                getWagerDisplay={getWagerDisplay}
               />
             </>
           )}
@@ -116,10 +149,9 @@ function AppContent() {
           
           {currentView === 'join' && (
             <JoinGame
-              games={availableGames}
-              loading={loading}
               onJoinGame={handleJoinGame}
               onBack={handleBackToHome}
+              onCreateGame={() => setCurrentView('create')}
               getWagerDisplay={getWagerDisplay}
             />
           )}

@@ -1,42 +1,61 @@
 import { useState } from 'react';
-import { Game, WagerAmount, Move } from '../App';
-import { ArrowLeft, Users, Clock } from 'lucide-react';
+import { WagerAmount, Move } from '../App';
+import { ArrowLeft, Users, Clock, Filter, Plus } from 'lucide-react';
+import { useGames } from '../utils/useGames';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 interface JoinGameProps {
-  games: Game[];
-  loading?: boolean;
   onJoinGame: (_gameId: string, _move: Move) => void;
   onBack: () => void;
+  onCreateGame: () => void;
   getWagerDisplay: (_wager: WagerAmount) => string;
 }
 
-export function JoinGame({ games, loading, onJoinGame, onBack, getWagerDisplay }: JoinGameProps) {
+export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: JoinGameProps) {
+  const { games, loading } = useGames();
+  const wallet = useWallet();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
-  const [selectedMove, setSelectedMove] = useState<Move | null>(null);
   const [isJoining, setIsJoining] = useState(false);
+  const [wagerFilter, setWagerFilter] = useState<WagerAmount | 'all'>('all');
 
-  const moveOptions: { value: Move; emoji: string; name: string }[] = [
-    { value: 'rock', emoji: '🪨', name: 'Rock' },
-    { value: 'paper', emoji: '📄', name: 'Paper' },
-    { value: 'scissors', emoji: '✂️', name: 'Scissors' },
-  ];
+  // Filter games to show only those waiting for players (excluding current user's games)
+  let availableGames = games.filter(g => 
+    g.status === 'waiting' && 
+    g.player1 !== wallet.publicKey?.toString()
+  );
+
+  // Apply wager filter
+  if (wagerFilter !== 'all') {
+    availableGames = availableGames.filter(g => g.wager === wagerFilter);
+  }
 
   const handleJoinGame = async () => {
-    if (!selectedGame || !selectedMove) return;
+    if (!selectedGame) return;
+    
+    // Only allow joining if wallet is connected
+    if (!wallet.connected || !wallet.publicKey) {
+      return; // Button should be disabled in this case
+    }
     
     setIsJoining(true);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    onJoinGame(selectedGame, selectedMove);
-    setIsJoining(false);
+    try {
+      await onJoinGame(selectedGame, 'rock');
+    } catch (error) {
+      console.error('Error joining game:', error);
+    } finally {
+      setIsJoining(false);
+    }
   };
 
-  const selectedGameData = games.find(g => g.id === selectedGame);
+  const selectedGameData = availableGames.find(g => g.id === selectedGame);
 
   return (
     <div className="max-w-2xl mx-auto">
+      <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+        <WalletMultiButton />
+      </div>
+      
       <div className="flex items-center gap-4 mb-6">
         <button onClick={onBack} className="btn btn-secondary">
           <ArrowLeft size={16} />
@@ -46,9 +65,30 @@ export function JoinGame({ games, loading, onJoinGame, onBack, getWagerDisplay }
 
       {/* Available Games */}
       <div className="card mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Users size={20} />
-          <h3 className="text-xl font-semibold">Available Games</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Users size={20} />
+            <h3 className="text-xl font-semibold">Available Games</h3>
+          </div>
+          
+          {/* Wager Filter */}
+          <div className="flex items-center gap-2">
+            <Filter size={16} />
+            <select 
+              value={wagerFilter} 
+              onChange={(e) => {
+                setWagerFilter(e.target.value as WagerAmount | 'all');
+                setSelectedGame(null); // Reset selection when filtering
+              }}
+              className="input text-sm"
+              style={{ width: 'auto', minWidth: '120px' }}
+            >
+              <option value="all">All Wagers</option>
+              <option value="sol001">0.01 SOL</option>
+              <option value="sol01">0.1 SOL</option>
+              <option value="sol1">1 SOL</option>
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -56,17 +96,50 @@ export function JoinGame({ games, loading, onJoinGame, onBack, getWagerDisplay }
             <div className="animate-spin rounded-full h-12 w-12 border-2 border-accent border-t-transparent mx-auto mb-4"></div>
             <p className="text-secondary">Loading available games...</p>
           </div>
-        ) : games.length === 0 ? (
+        ) : availableGames.length === 0 ? (
           <div className="text-center py-8">
             <Clock size={48} className="mx-auto text-secondary mb-4" />
-            <p className="text-secondary">No games available to join</p>
-            <p className="text-sm text-secondary mt-2">
-              Create a new game or wait for someone else to create one
-            </p>
+            {wagerFilter === 'all' ? (
+              <>
+                <p className="text-secondary mb-4">No games available to join right now</p>
+                <p className="text-sm text-secondary mb-4">
+                  Be the first to start the action!
+                </p>
+                <button 
+                  onClick={onCreateGame}
+                  className="btn btn-primary"
+                >
+                  <Plus size={16} />
+                  Create New Game
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-secondary mb-4">No games found for {getWagerDisplay(wagerFilter)}</p>
+                <p className="text-sm text-secondary mb-4">
+                  Try a different wager amount or create your own game
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button 
+                    onClick={() => setWagerFilter('all')}
+                    className="btn btn-secondary"
+                  >
+                    Show All Games
+                  </button>
+                  <button 
+                    onClick={onCreateGame}
+                    className="btn btn-primary"
+                  >
+                    <Plus size={16} />
+                    Create Game
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
-          <div className="space-y-3">
-            {games.map((game) => (
+          <div className="space-y-4">
+            {availableGames.map((game) => (
               <div
                 key={game.id}
                 onClick={() => setSelectedGame(game.id)}
@@ -76,7 +149,7 @@ export function JoinGame({ games, loading, onJoinGame, onBack, getWagerDisplay }
                   <div>
                     <div className="font-semibold">Game #{game.id}</div>
                     <div className="text-sm text-secondary">
-                      Player: {game.player1.slice(0, 8)}...
+                      Player: {game.player1Name || `${game.player1.slice(0, 8)}...`}
                     </div>
                   </div>
                   <div className="text-right">
@@ -94,113 +167,77 @@ export function JoinGame({ games, loading, onJoinGame, onBack, getWagerDisplay }
         )}
       </div>
 
-      {/* Move Selection */}
-      {selectedGame && (
-        <div className="card mb-6">
-          <h3 className="text-xl font-semibold mb-4">Choose Your Move</h3>
-          <p className="text-secondary mb-4">
-            Your move will be hidden until both players reveal their moves.
-          </p>
-          
-          <div className="grid grid-3 gap-3 mb-4">
-            {moveOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setSelectedMove(option.value)}
-                className={`move-option ${selectedMove === option.value ? 'move-option-selected' : ''}`}
-              >
-                <div className="text-4xl mb-2">{option.emoji}</div>
-                <div className="font-semibold">{option.name}</div>
-              </button>
-            ))}
-          </div>
-          
-          {selectedMove && (
-            <div className="text-center p-3 bg-success bg-opacity-10 rounded-lg border border-success border-opacity-20">
-              <span className="text-success">✓ Move selected: {moveOptions.find(m => m.value === selectedMove)?.name}</span>
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Game Details */}
+
+
+
+      {/* Selected Game Details */}
       {selectedGameData && (
         <div className="card mb-6">
-          <h4 className="font-semibold mb-3">Game Details</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
+          <h4 className="font-semibold mb-3">Selected Game Details</h4>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 rounded-lg" style={{background: 'rgba(255,255,255,0.05)'}}>
               <span className="text-secondary">Game ID:</span>
-              <span className="font-mono">#{selectedGameData.id}</span>
+              <span className="font-mono font-semibold">#{selectedGameData.id}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-secondary">Wager:</span>
-              <span className="text-accent font-semibold">{getWagerDisplay(selectedGameData.wager)}</span>
+            <div className="flex justify-between items-center p-3 rounded-lg" style={{background: 'rgba(255,255,255,0.05)'}}>
+              <span className="text-secondary">Wager Amount:</span>
+              <span className="font-semibold text-accent">{getWagerDisplay(selectedGameData.wager)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center p-3 rounded-lg" style={{background: 'rgba(255,255,255,0.05)'}}>
               <span className="text-secondary">Opponent:</span>
-              <span className="font-mono">{selectedGameData.player1.slice(0, 8)}...</span>
+              <span className="font-semibold">{selectedGameData.player1Name || `${selectedGameData.player1.slice(0, 8)}...`}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-secondary">Created:</span>
-              <span>{selectedGameData.createdAt.toLocaleDateString()}</span>
+            <div className="flex justify-between items-center p-3 rounded-lg" style={{background: 'rgba(255,255,255,0.05)'}}>
+              <span className="text-secondary">Status:</span>
+              <span className="text-warning font-semibold">⏳ Waiting for player</span>
             </div>
           </div>
           
-          <div className="text-sm text-warning mt-3 p-2 bg-warning bg-opacity-10 rounded border border-warning border-opacity-20">
-            ⚠️ By joining, you commit {getWagerDisplay(selectedGameData.wager)} to the game
+          <div className="text-sm text-warning mt-4 p-3 rounded-lg" style={{background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)'}}>
+            ⚠️ By joining this game, you commit <strong>{getWagerDisplay(selectedGameData.wager)}</strong> to the match. Winner takes all!
           </div>
         </div>
       )}
 
-      {/* Game Rules */}
-      <div className="card mb-6">
-        <h4 className="font-semibold mb-2">Game Rules</h4>
-        <div className="text-sm text-secondary space-y-1">
-          <p>🪨 Rock crushes Scissors</p>
-          <p>📄 Paper covers Rock</p>
-          <p>✂️ Scissors cut Paper</p>
-        </div>
-        <div className="text-sm text-accent mt-3">
-          Winner takes all • Ties split the pot
-        </div>
-      </div>
-
       {/* Join Button */}
-      {selectedGame && selectedMove && (
+      {selectedGame && (
         <div className="text-center">
           <button
             onClick={handleJoinGame}
-            disabled={isJoining}
-            className="btn btn-success btn-large"
+            disabled={isJoining || !wallet.connected}
+            className={`btn btn-large ${wallet.connected ? 'btn-success' : 'btn-secondary'}`}
           >
             {isJoining ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
                 Joining Game...
               </>
+            ) : !wallet.connected ? (
+              <>
+                <Users size={20} />
+                Connect Wallet to Join Game #{selectedGameData!.id}
+              </>
             ) : (
               <>
                 <Users size={20} />
-                Join Game for {getWagerDisplay(selectedGameData!.wager)}
+                Join Game #{selectedGameData!.id} for {getWagerDisplay(selectedGameData!.wager)}
               </>
             )}
           </button>
           
           <p className="text-sm text-secondary mt-2">
-            Your move and wager will be committed to the blockchain
+            {!wallet.connected 
+              ? "Use the wallet button in the top-right to connect your wallet first"
+              : "You will commit your move after joining the game"
+            }
           </p>
         </div>
       )}
 
-      {!selectedGame && games.length > 0 && (
+      {!selectedGame && availableGames.length > 0 && (
         <div className="text-center">
           <p className="text-secondary">Select a game above to continue</p>
-        </div>
-      )}
-
-      {selectedGame && !selectedMove && (
-        <div className="text-center">
-          <p className="text-secondary">Choose your move to join the game</p>
         </div>
       )}
     </div>
