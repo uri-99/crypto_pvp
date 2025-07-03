@@ -4,12 +4,13 @@ import { ArrowLeft, Users, Clock } from 'lucide-react';
 
 interface JoinGameProps {
   games: Game[];
+  loading?: boolean;
   onJoinGame: (_gameId: string, _move: Move) => void;
   onBack: () => void;
   getWagerDisplay: (_wager: WagerAmount) => string;
 }
 
-export function JoinGame({ games, onJoinGame, onBack, getWagerDisplay }: JoinGameProps) {
+export function JoinGame({ games, loading, onJoinGame, onBack, getWagerDisplay }: JoinGameProps) {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [selectedMove, setSelectedMove] = useState<Move | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -50,7 +51,12 @@ export function JoinGame({ games, onJoinGame, onBack, getWagerDisplay }: JoinGam
           <h3 className="text-xl font-semibold">Available Games</h3>
         </div>
 
-        {games.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-accent border-t-transparent mx-auto mb-4"></div>
+            <p className="text-secondary">Loading available games...</p>
+          </div>
+        ) : games.length === 0 ? (
           <div className="text-center py-8">
             <Clock size={48} className="mx-auto text-secondary mb-4" />
             <p className="text-secondary">No games available to join</p>

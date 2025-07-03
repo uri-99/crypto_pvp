@@ -6,6 +6,8 @@ import { GamePlay } from './components/GamePlay';
 import { GameResult } from './components/GameResult';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useGames } from './utils/useGames';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export type GameView = 'home' | 'create' | 'join' | 'play' | 'result';
@@ -25,75 +27,45 @@ export interface Game {
   createdAt: Date;
 }
 
-function App() {
+function AppContent() {
   const [currentView, setCurrentView] = useState<GameView>('home');
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
-  const [games, setGames] = useState<Game[]>([]);
-  const [playerAddress] = useState('mock_player_address');
+  const { games, loading, refreshGames } = useGames();
+  const wallet = useWallet();
 
-  // Solana wallet setup
-  const endpoint = useMemo(() => 'http://localhost:8899', []);
-  const wallets = useMemo(() => [], []);
-
-  const handleCreateGame = (wager: WagerAmount, move: Move) => {
-    const newGame: Game = {
-      id: `game_${Date.now()}`,
-      player1: playerAddress,
-      wager,
-      status: 'waiting',
-      player1Move: move,
-      createdAt: new Date(),
-    };
-    
-    setGames([...games, newGame]);
-    setCurrentGame(newGame);
-    setCurrentView('play');
+  const handleCreateGame = (_wager: WagerAmount, _move: Move) => {
+    // After creating game on blockchain, refresh the games list
+    setTimeout(() => {
+      refreshGames();
+      setCurrentView('home'); // Go back to home to see the created game
+    }, 2000);
   };
 
   const handleJoinGame = (gameId: string, move: Move) => {
+    // TODO: Implement join game blockchain logic
+    console.log('Joining game:', gameId, 'with move:', move);
+    
+    // For now, just go to play view
     const game = games.find(g => g.id === gameId);
     if (game) {
-      const updatedGame = {
+      setCurrentGame({
         ...game,
-        player2: playerAddress,
+        player2: wallet.publicKey?.toString(),
         player2Move: move,
-        status: 'revealing' as GameStatus,
-      };
-      
-      setGames(games.map(g => g.id === gameId ? updatedGame : g));
-      setCurrentGame(updatedGame);
+        status: 'revealing',
+      });
       setCurrentView('play');
     }
   };
 
   const handleRevealMoves = () => {
-    if (currentGame && currentGame.player1Move && currentGame.player2Move) {
-      const winner = determineWinner(currentGame.player1Move, currentGame.player2Move);
-      const updatedGame = {
-        ...currentGame,
-        status: 'finished' as GameStatus,
-        winner: winner === 'tie' ? 'tie' : (winner === 'player1' ? currentGame.player1 : currentGame.player2),
-      };
-      
-      setGames(games.map(g => g.id === currentGame.id ? updatedGame : g));
-      setCurrentGame(updatedGame);
+    // TODO: Implement reveal moves logic
+    if (currentGame) {
       setCurrentView('result');
     }
   };
 
-  const determineWinner = (move1: Move, move2: Move): 'player1' | 'player2' | 'tie' => {
-    if (move1 === move2) return 'tie';
-    
-    if (
-      (move1 === 'rock' && move2 === 'scissors') ||
-      (move1 === 'paper' && move2 === 'rock') ||
-      (move1 === 'scissors' && move2 === 'paper')
-    ) {
-      return 'player1';
-    }
-    
-    return 'player2';
-  };
+
 
   const handleBackToHome = () => {
     setCurrentView('home');
@@ -108,70 +80,85 @@ function App() {
     }
   };
 
-  const availableGames = games.filter(g => g.status === 'waiting' && g.player1 !== playerAddress);
+  // Filter games to show only those waiting for players (excluding current user's games)
+  const availableGames = games.filter(g => 
+    g.status === 'waiting' && 
+    g.player1 !== wallet.publicKey?.toString()
+  );
+
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--text)', paddingTop: 40 }}>
+      <div className="container">
+        <div className="py-8">
+          {currentView === 'home' && (
+            <>
+              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+                <WalletMultiButton />
+              </div>
+              <Home
+                onCreateGame={() => setCurrentView('create')}
+                onJoinGame={() => setCurrentView('join')}
+              />
+            </>
+          )}
+          
+          {currentView === 'create' && (
+            <>
+              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+                <WalletMultiButton />
+              </div>
+              <CreateGame
+                onCreateGame={handleCreateGame}
+                onBack={handleBackToHome}
+              />
+            </>
+          )}
+          
+          {currentView === 'join' && (
+            <JoinGame
+              games={availableGames}
+              loading={loading}
+              onJoinGame={handleJoinGame}
+              onBack={handleBackToHome}
+              getWagerDisplay={getWagerDisplay}
+            />
+          )}
+          
+          {currentView === 'play' && currentGame && (
+            <GamePlay
+              game={currentGame}
+              onRevealMoves={handleRevealMoves}
+              onBack={handleBackToHome}
+              getWagerDisplay={getWagerDisplay}
+              playerAddress={wallet.publicKey?.toString() || ''}
+            />
+          )}
+          
+          {currentView === 'result' && currentGame && (
+            <GameResult
+              game={currentGame}
+              onPlayAgain={() => setCurrentView('create')}
+              onBackToHome={handleBackToHome}
+              getWagerDisplay={getWagerDisplay}
+              playerAddress={wallet.publicKey?.toString() || ''}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  // Solana wallet setup
+  const endpoint = useMemo(() => 'http://localhost:8899', []);
+  const wallets = useMemo(() => [], []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets}>
         <WalletModalProvider>
-          <div className="min-h-screen" style={{ background: 'var(--background)', color: 'var(--text)', paddingTop: 40 }}>
-            <div className="container">
-              <div className="py-8">
-                {currentView === 'home' && (
-                  <>
-                    <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
-                      <WalletMultiButton />
-                    </div>
-                    <Home
-                      onCreateGame={() => setCurrentView('create')}
-                      onJoinGame={() => setCurrentView('join')}
-                    />
-                  </>
-                )}
-                
-                {currentView === 'create' && (
-                  <>
-                    <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
-                      <WalletMultiButton />
-                    </div>
-                    <CreateGame
-                      onCreateGame={handleCreateGame}
-                      onBack={handleBackToHome}
-                    />
-                  </>
-                )}
-                
-                {currentView === 'join' && (
-                  <JoinGame
-                    games={availableGames}
-                    onJoinGame={handleJoinGame}
-                    onBack={handleBackToHome}
-                    getWagerDisplay={getWagerDisplay}
-                  />
-                )}
-                
-                {currentView === 'play' && currentGame && (
-                  <GamePlay
-                    game={currentGame}
-                    onRevealMoves={handleRevealMoves}
-                    onBack={handleBackToHome}
-                    getWagerDisplay={getWagerDisplay}
-                    playerAddress={playerAddress}
-                  />
-                )}
-                
-                {currentView === 'result' && currentGame && (
-                  <GameResult
-                    game={currentGame}
-                    onPlayAgain={() => setCurrentView('create')}
-                    onBackToHome={handleBackToHome}
-                    getWagerDisplay={getWagerDisplay}
-                    playerAddress={playerAddress}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
+          <AppContent />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
