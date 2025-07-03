@@ -3,6 +3,9 @@ import { WagerAmount, Move } from '../App';
 import { ArrowLeft, Users, Clock, Filter, Plus } from 'lucide-react';
 import { useGames } from '../utils/useGames';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
+import idl from '../idl/crypto_pvp.json';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 interface JoinGameProps {
@@ -12,9 +15,12 @@ interface JoinGameProps {
   getWagerDisplay: (_wager: WagerAmount) => string;
 }
 
+const PROGRAM_ID = new web3.PublicKey(idl.address);
+
 export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: JoinGameProps) {
   const { games, loading } = useGames();
   const wallet = useWallet();
+  const { connection } = useConnection();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [wagerFilter, setWagerFilter] = useState<WagerAmount | 'all'>('all');
@@ -40,12 +46,60 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
     
     setIsJoining(true);
     try {
-      await onJoinGame(selectedGame, 'rock');
-    } catch (error) {
-      console.error('Error joining game:', error);
-    } finally {
-      setIsJoining(false);
+      if (!wallet.publicKey) throw new Error('Wallet not connected');
+      if (!wallet) throw new Error('Wallet not available');
+      if (!connection) throw new Error('Connection not available');
+      
+      // Generate random salt (copying exact pattern from CreateGame.tsx)
+      const saltArr = new Uint8Array(32);
+      crypto.getRandomValues(saltArr);
+      
+      // For demo, use 'rock' as move
+      const move = 'rock';
+      
+      // Hash move+salt (move as 0=rock, 1=paper, 2=scissors)
+      const moveIdx = 0; // rock
+      const moveData = new Uint8Array([moveIdx, ...saltArr]); // [move, ...salt]
+      
+      // Use browser crypto.subtle.digest for SHA-256
+      const hashBuffer = await crypto.subtle.digest('SHA-256', moveData);
+      const moveHash = new Uint8Array(hashBuffer);
+      
+      // Setup provider and program (copying exact pattern from CreateGame.tsx)
+      const opts = AnchorProvider.defaultOptions();
+      const provider = new AnchorProvider(connection, wallet as any, opts);
+      const program = new Program(idl as any, provider);
+      
+      // Derive PDAs for the game
+      const gameIdBN = new BN(parseInt(selectedGame));
+      const [gamePda] = await web3.PublicKey.findProgramAddress([
+        Buffer.from('game'),
+        gameIdBN.toArrayLike(Buffer, 'le', 8)
+      ], PROGRAM_ID);
+      
+      const [playerProfilePda] = await web3.PublicKey.findProgramAddress([
+        Buffer.from('player_profile'),
+        wallet.publicKey.toBytes()
+      ], PROGRAM_ID);
+      
+      // Send transaction (copying exact pattern from CreateGame.tsx)
+      await program.methods.joinGame(
+        gameIdBN,  // _game_id parameter 
+        moveHash   // move_hash parameter (this was missing!)
+      ).accounts({
+        game: gamePda,
+        player: wallet.publicKey,
+        player2Profile: playerProfilePda,  // Use camelCase like CreateGame.tsx
+        systemProgram: web3.SystemProgram.programId,
+      }).rpc();
+      
+      // Call parent handler for UI state
+      await onJoinGame(selectedGame, move as Move);
+    } catch (e) {
+      console.error('Error details:', e);
+      alert('Error joining game: ' + (e instanceof Error ? e.message : e));
     }
+    setIsJoining(false);
   };
 
   const selectedGameData = availableGames.find(g => g.id === selectedGame);

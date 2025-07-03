@@ -6,9 +6,8 @@ import { GamePlay } from './components/GamePlay';
 import { GameResult } from './components/GameResult';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { Connection, PublicKey } from '@solana/web3.js';
-import { AnchorProvider, Program, BN, web3 } from '@coral-xyz/anchor';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import idl from './idl/crypto_pvp.json';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -32,10 +31,13 @@ export interface Game {
   createdAt: Date;
 }
 
+const PROGRAM_ID = new web3.PublicKey(idl.address);
+
 function AppContent() {
   const [currentView, setCurrentView] = useState<GameView>('home');
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const wallet = useWallet();
+  const { connection } = useConnection();
 
   const handleCreateGame = (_wager: WagerAmount, _move: Move) => {
     // After creating game on blockchain, go back to home
@@ -45,49 +47,21 @@ function AppContent() {
   };
 
   const handleJoinGame = async (gameId: string, _move: Move) => {
-    try {
-      if (!wallet.publicKey) throw new Error('Wallet not connected');
-      
-      const connection = new Connection('http://localhost:8899');
-      const PROGRAM_ID = new PublicKey(idl.address);
-      
-      const provider = new AnchorProvider(connection, wallet as any, AnchorProvider.defaultOptions());
-      const program = new Program(idl as any, provider);
-      
-      // Find the game PDA
-      const [gamePda] = await PublicKey.findProgramAddress([
-        Buffer.from('game'),
-        new BN(parseInt(gameId)).toArrayLike(Buffer, 'le', 8)
-      ], PROGRAM_ID);
-      
-      const [playerProfilePda] = await PublicKey.findProgramAddress([
-        Buffer.from('player_profile'),
-        wallet.publicKey.toBytes()
-      ], PROGRAM_ID);
-      
-      // Join the game
-      await program.methods.joinGame().accounts({
-        game: gamePda,
-        player: wallet.publicKey,
-        player2Profile: playerProfilePda,
-        systemProgram: web3.SystemProgram.programId,
-      }).rpc();
-      
-      // Update UI state - go to play view
-      setCurrentGame({
-        id: gameId,
-        player1: 'Player 1', // Will be updated when we fetch player names
-        player2: wallet.publicKey?.toString() || 'Player 2',
-        wager: 'sol01', // Will be fetched from blockchain
-        status: 'active',
-        createdAt: new Date(),
-      });
-      setCurrentView('play');
-      
-    } catch (error) {
-      console.error('Error joining game:', error);
-      alert('Error joining game: ' + (error instanceof Error ? error.message : error));
-    }
+    // Blockchain interaction is now handled in JoinGame.tsx
+    // This function just handles UI state after successful join
+    
+    console.log('App.tsx handleJoinGame - updating UI state for game:', gameId);
+    
+    // Update UI state - go to play view
+    setCurrentGame({
+      id: gameId,
+      player1: 'Player 1', // Will be updated when we fetch player names
+      player2: wallet.publicKey?.toString() || 'Player 2',
+      wager: 'sol01', // Will be fetched from blockchain
+      status: 'active',
+      createdAt: new Date(),
+    });
+    setCurrentView('play');
   };
 
   const handleRevealMoves = () => {
