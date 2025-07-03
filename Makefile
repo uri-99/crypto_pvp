@@ -38,6 +38,9 @@ validator-stop: ## Stop local Solana validator
 	@echo "$(RED)Stopping local Solana validator...$(NC)"
 	pkill -f solana-test-validator || true
 	@echo "$(GREEN)Validator stopped!$(NC)"
+	@echo "$(RED)Stopping RPC tunnel...$(NC)"
+	pkill -f "npm exec localtunnel" || true
+	@echo "$(GREEN)Tunnel stopped!$(NC)"
 
 airdrop: ## Airdrop 10 SOL to default wallet
 	@echo "$(GREEN)Airdropping 10 SOL to default wallet...$(NC)"
@@ -96,8 +99,12 @@ logs: ## Show validator logs
 	@echo "$(GREEN)Showing validator logs (Ctrl+C to exit)...$(NC)"
 	solana logs
 
-dev: validator-start airdrop-all deploy initialize status logs ## Full dev setup: start validator, airdrop all wallets, deploy, initialize
+localnet-expose:
+	npx localtunnel --port 8899 --subdomain myrpcendpoint &
+
+dev: validator-start airdrop-all deploy initialize status localnet-expose logs ## Full dev setup: start validator, airdrop all wallets, deploy, initialize, expose rpc
 	@echo "$(GREEN)Development environment ready!$(NC)"
+	@echo "$(GREEN)RPC exposed in https://myrpcendpoint.loca.lt"
 	@echo "$(YELLOW)Your program is deployed and ready for testing$(NC)"
 
 alice_create: ## Alice creates a game with specified wager (usage: make alice_create sol01)
