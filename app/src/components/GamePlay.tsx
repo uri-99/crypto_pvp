@@ -23,8 +23,10 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
   const myMove = isPlayer1 ? game.player1Move : game.player2Move;
   
   // Game flow: waiting -> playing -> revealing -> finished
-  // ONLY consider players joined if game.player2 exists AND we've simulated joining
-  const realPlayer2Exists = game.player2 !== null && game.player2 !== undefined && game.player2 !== '';
+  // Check if player2 actually exists (not null, undefined, empty, or default pubkey)
+  const realPlayer2Exists = game.player2 && 
+    game.player2.trim() !== '' && 
+    game.player2 !== '11111111111111111111111111111111';
   const bothPlayersJoined = realPlayer2Exists || simulatedPlayer2Joined;
   const bothPlayersCommitted = (game.player1Move && game.player2Move) || simulatedMovesCommitted;
   const canReveal = game.status === 'revealing' && bothPlayersCommitted;
@@ -39,14 +41,17 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
   };
 
   const getStatusMessage = () => {
-    if (game.status === 'waiting' && !bothPlayersJoined) {
+    if (game.status === 'WaitingForPlayer') {
       return "Waiting for another player to join...";
     }
-    if (game.status === 'waiting' && bothPlayersJoined && !bothPlayersCommitted) {
+    if (game.status === 'CommitPhase') {
       return "Rock, Paper, Scissors... GO!";
     }
-    if (game.status === 'revealing') {
+    if (game.status === 'RevealPhase') {
       return "Both players have made their moves! Click to reveal.";
+    }
+    if (game.status === 'Finished') {
+      return "Game finished!";
     }
     return "Game in progress...";
   };
@@ -80,7 +85,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h2 className="text-2xl font-bold">Game #{game.id}</h2>
+            <h2 className="text-2xl font-bold mb-1">Game #{game.id}</h2>
             <p className="text-secondary">Wager: {getWagerDisplay(game.wager)}</p>
           </div>
         </div>
@@ -136,7 +141,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h2 className="text-2xl font-bold">Game #{game.id}</h2>
+            <h2 className="text-2xl font-bold mb-1">Game #{game.id}</h2>
             <p className="text-secondary">Wager: {getWagerDisplay(game.wager)}</p>
           </div>
         </div>
@@ -184,7 +189,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h2 className="text-2xl font-bold">Game #{game.id}</h2>
+            <h2 className="text-2xl font-bold mb-1">Game #{game.id}</h2>
             <p className="text-secondary">Wager: {getWagerDisplay(game.wager)}</p>
           </div>
         </div>
@@ -196,20 +201,13 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
           <p className="text-secondary">Waiting for opponent to make their move</p>
         </div>
 
-        <div className="text-center">
-          <button 
-            className="btn btn-secondary btn-small"
-            onClick={() => setShowRevealPage(true)}
-          >
-            🧪 Simulate Other Player Moved
-          </button>
-        </div>
+
       </div>
     );
   }
 
-  // ONLY show rock paper scissors page when we explicitly simulate player 2 joining
-  if (simulatedPlayer2Joined && !mySelectedMove) {
+  // Show rock paper scissors page when both players joined and current player needs to make a move
+  if (game.status === 'CommitPhase' && !myMove && !mySelectedMove) {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
@@ -217,7 +215,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h2 className="text-2xl font-bold">Game #{game.id}</h2>
+            <h2 className="text-2xl font-bold mb-1">Game #{game.id}</h2>
             <p className="text-secondary">Wager: {getWagerDisplay(game.wager)}</p>
           </div>
         </div>
@@ -254,7 +252,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
           <ArrowLeft size={16} />
         </button>
         <div>
-          <h2 className="text-2xl font-bold">Game #{game.id}</h2>
+          <h2 className="text-2xl font-bold mb-1">Game #{game.id}</h2>
           <p className="text-secondary">Wager: {getWagerDisplay(game.wager)}</p>
         </div>
       </div>
@@ -269,26 +267,18 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
         <p className="text-secondary mb-4">{getStatusMessage()}</p>
         
         <div className={`status-badge ${
-          game.status === 'waiting' && !bothPlayersJoined ? 'status-waiting' :
-          game.status === 'waiting' && bothPlayersJoined ? 'status-active' :
-          game.status === 'revealing' ? 'status-active' :
+          game.status === 'WaitingForPlayer' ? 'status-waiting' :
+          game.status === 'CommitPhase' ? 'status-active' :
+          game.status === 'RevealPhase' ? 'status-active' :
           'status-finished'
         }`}>
-          {game.status === 'waiting' && !bothPlayersJoined && '⏳ Waiting'}
-          {game.status === 'waiting' && bothPlayersJoined && '⚡ Playing'}
-          {game.status === 'revealing' && '👁️ Ready to Reveal'}
-          {game.status === 'finished' && '✅ Finished'}
+          {game.status === 'WaitingForPlayer' && '⏳ Waiting'}
+          {game.status === 'CommitPhase' && '⚡ Playing'}
+          {game.status === 'RevealPhase' && '👁️ Ready to Reveal'}
+          {game.status === 'Finished' && '✅ Finished'}
         </div>
         
-        {/* Test button to skip to reveal phase */}
-        {bothPlayersJoined && !bothPlayersCommitted && (
-          <button 
-            className="btn btn-secondary btn-small mt-3"
-            onClick={() => setSimulatedMovesCommitted(true)}
-          >
-            🧪 Skip to Reveal Phase
-          </button>
-        )}
+
       </div>
 
       {/* Players */}
@@ -308,9 +298,11 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
             </div>
             
             <div className="text-sm">
-              {!bothPlayersJoined && 'Waiting for player 2...'}
-              {bothPlayersJoined && !bothPlayersCommitted && 'Ready to choose move!'}
-              {bothPlayersCommitted && 'Move committed'}
+              {game.status === 'waiting' && !realPlayer2Exists && 'Waiting for player 2...'}
+              {game.status === 'waiting' && realPlayer2Exists && (game.player1Move ? 'Move committed' : 'Choosing move...')}
+              {game.status === 'active' && (game.player1Move ? 'Move committed' : 'Choosing move...')}
+              {game.status === 'revealing' && 'Ready to reveal'}
+              {game.status === 'finished' && 'Game finished'}
             </div>
           </div>
         </div>
@@ -332,9 +324,11 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
             </div>
             
             <div className="text-sm">
-              {!bothPlayersJoined && 'Waiting for player...'}
-              {bothPlayersJoined && !bothPlayersCommitted && 'Ready to choose move!'}
-              {bothPlayersCommitted && 'Move committed'}
+              {game.status === 'waiting' && !realPlayer2Exists && 'Waiting for player...'}
+              {game.status === 'waiting' && realPlayer2Exists && (game.player2Move ? 'Move committed' : 'Choosing move...')}
+              {game.status === 'active' && (game.player2Move ? 'Move committed' : 'Choosing move...')}
+              {game.status === 'revealing' && 'Ready to reveal'}
+              {game.status === 'finished' && 'Game finished'}
             </div>
           </div>
         </div>
@@ -392,17 +386,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
         </div>
       </div>
 
-      {/* Less intrusive simulate player 2 joining button at the bottom */}
-      {game.status === 'waiting' && !bothPlayersJoined && (
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: 32 }}>
-          <button 
-            className="btn btn-secondary btn-small"
-            onClick={() => setSimulatedPlayer2Joined(true)}
-          >
-            🧪 Simulate Player 2 Joining
-          </button>
-        </div>
-      )}
+
     </div>
   );
 } 

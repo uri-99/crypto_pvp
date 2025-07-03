@@ -27,7 +27,7 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
 
   // Filter games to show only those waiting for players (excluding current user's games)
   let availableGames = games.filter(g => 
-    g.status === 'waiting' && 
+    g.status === 'WaitingForPlayer' && 
     g.player1 !== wallet.publicKey?.toString()
   );
 

@@ -51,7 +51,7 @@ export function Home({
           <Trophy size={24} />
           How to Play
         </h3>
-        <ol className="space-y-2 text-base list-decimal list-inside" style={{color: 'rgba(255,255,255,0.75)'}}>
+        <ol className="space-y-2 text-base list-decimal list-inside pl-4" style={{color: 'rgba(255,255,255,0.75)'}}>
           <li>
             <strong style={{color: 'rgba(255,255,255,0.88)'}}>Create a Game:</strong> Choose your wager amount and make your secret move
           </li>
@@ -82,21 +82,24 @@ export function Home({
               {myGames.map((game) => (
                 <div key={game.id} className="game-card p-3 rounded-lg border border-opacity-20 flex items-center justify-between" style={{background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)'}}>
                   <div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <div className="font-bold text-lg" style={{color: 'rgba(255,255,255,0.88)'}}>
                         Game #{game.id}
                       </div>
                       <span className="text-sm px-2 py-1 rounded" style={{
-                        background: game.status === 'waiting' ? 'rgba(255, 193, 7, 0.2)' : 
-                                  game.status === 'active' ? 'rgba(40, 167, 69, 0.2)' :
-                                  'rgba(108, 117, 125, 0.2)',
-                        color: game.status === 'waiting' ? '#ffc107' : 
-                               game.status === 'active' ? '#28a745' :
-                               '#6c757d'
+                        background: game.status === 'WaitingForPlayer' ? 'rgba(255, 193, 7, 0.2)' : 
+                                  game.status === 'CommitPhase' ? 'rgba(40, 167, 69, 0.2)' :
+                                  game.status === 'RevealPhase' ? 'rgba(108, 117, 125, 0.2)' :
+                                  'rgba(128, 128, 128, 0.2)',
+                        color: game.status === 'WaitingForPlayer' ? '#ffc107' : 
+                               game.status === 'CommitPhase' ? '#28a745' :
+                               game.status === 'RevealPhase' ? '#6c757d' :
+                               '#808080'
                       }}>
-                        {game.status === 'waiting' ? 'Waiting for opponent' :
-                         game.status === 'active' ? 'Ready to play' :
-                         game.status === 'revealing' ? 'Revealing moves' : 'Active'}
+                        {game.status === 'WaitingForPlayer' ? 'Waiting for opponent' :
+                         game.status === 'CommitPhase' ? 'Choose your move' :
+                         game.status === 'RevealPhase' ? 'Revealing moves' : 
+                         game.status === 'Finished' ? 'Game finished' : 'Active'}
                       </span>
                     </div>
                     <div className="text-sm mt-1" style={{color: 'rgba(255,255,255,0.70)'}}>

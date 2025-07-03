@@ -7,7 +7,7 @@ import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import idl from '../idl/crypto_pvp.json';
 
 interface CreateGameProps {
-  onCreateGame: (_wager: WagerAmount, _move: Move) => void;
+  onCreateGame: (_wager: WagerAmount, _move: Move, _gameId?: string) => void;
   onBack: () => void;
 }
 
@@ -98,8 +98,8 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
         systemProgram: web3.SystemProgram.programId,
       }).rpc();
       
-      // Call parent handler (for UI state)
-      onCreateGame(selectedWager, move as Move);
+      // Call parent handler with the actual game ID
+      onCreateGame(selectedWager, move as Move, gameCounter.toString());
     } catch (e) {
       console.error('Error details:', e);
       alert('Error creating game: ' + (e instanceof Error ? e.message : e));
@@ -168,18 +168,26 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
       <div className="text-center mt-2">
         <button
           onClick={handleCreateGame}
-          disabled={isCreating}
-          className="btn btn-primary btn-large text-xl font-bold text-white"
+          disabled={isCreating || !wallet.connected}
+          className={`btn btn-large text-xl font-bold ${wallet.connected ? 'btn-primary text-white' : 'btn-secondary'}`}
         >
           {isCreating ? (
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
               Creating Game...
             </>
+          ) : !wallet.connected ? (
+            <>Connect Wallet to Create Match</>
           ) : (
             <>Create Match</>
           )}
         </button>
+        
+        {!wallet.connected && (
+          <p className="text-sm text-secondary mt-2">
+            Use the wallet button in the top-right to connect your wallet first
+          </p>
+        )}
       </div>
     </div>
   );

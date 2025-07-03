@@ -15,7 +15,7 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 export type GameView = 'home' | 'create' | 'join' | 'play' | 'result';
 export type Move = 'rock' | 'paper' | 'scissors';
 export type WagerAmount = 'sol001' | 'sol01' | 'sol1';
-export type GameStatus = 'waiting' | 'active' | 'revealing' | 'finished';
+export type GameStatus = 'WaitingForPlayer' | 'CommitPhase' | 'RevealPhase' | 'Finished';
 
 export interface Game {
   id: string;
@@ -39,11 +39,17 @@ function AppContent() {
   const wallet = useWallet();
   const { connection } = useConnection();
 
-  const handleCreateGame = (_wager: WagerAmount, _move: Move) => {
-    // After creating game on blockchain, go back to home
-    setTimeout(() => {
-      setCurrentView('home');
-    }, 2000);
+  const handleCreateGame = (wager: WagerAmount, _move: Move, gameId?: string) => {
+    // After creating game on blockchain, go to the game's detailed view
+    setCurrentGame({
+      id: gameId || '0', // Use the actual game ID from blockchain
+      player1: wallet.publicKey?.toString() || 'Player 1',
+      player2: undefined, // No player 2 yet
+      wager: wager,
+      status: 'WaitingForPlayer',
+      createdAt: new Date(),
+    });
+    setCurrentView('play');
   };
 
   const handleJoinGame = async (gameId: string, _move: Move) => {
@@ -58,7 +64,7 @@ function AppContent() {
       player1: 'Player 1', // Will be updated when we fetch player names
       player2: wallet.publicKey?.toString() || 'Player 2',
       wager: 'sol01', // Will be fetched from blockchain
-      status: 'active',
+      status: 'CommitPhase', // After joining, game moves to commit phase
       createdAt: new Date(),
     });
     setCurrentView('play');
