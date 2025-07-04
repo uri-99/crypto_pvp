@@ -40,6 +40,7 @@ validator-stop: ## Stop local Solana validator
 	@echo "$(GREEN)Validator stopped!$(NC)"
 	@echo "$(RED)Stopping RPC tunnel...$(NC)"
 	pkill -f "npm exec localtunnel" || true
+	pkill -f "npx localtunnel" || true
 	@echo "$(GREEN)Tunnel stopped!$(NC)"
 
 airdrop: ## Airdrop 10 SOL to default wallet
@@ -51,11 +52,11 @@ airdrop: ## Airdrop 10 SOL to default wallet
 airdrop-all: ## Airdrop 5 SOL to all test wallets (authority, playerAlice, playerBob)
 	@echo "$(GREEN)Airdropping 5 SOL to all test wallets...$(NC)"
 	@echo "$(YELLOW)Funding authority wallet...$(NC)"
-	solana airdrop 5 $(AUTHORITY_WALLET)
+	solana airdrop 5.1 $(AUTHORITY_WALLET)
 	@echo "$(YELLOW)Funding playerAlice wallet...$(NC)"
-	solana airdrop 5 $(PLAYER_ALICE_WALLET)
+	solana airdrop 5.1 $(PLAYER_ALICE_WALLET)
 	@echo "$(YELLOW)Funding playerBob wallet...$(NC)"
-	solana airdrop 5 $(PLAYER_BOB_WALLET)
+	solana airdrop 5.1 $(PLAYER_BOB_WALLET)
 	@echo "$(GREEN)All wallets funded!$(NC)"
 	@echo "$(GREEN)Wallet addresses:$(NC)"
 	@echo "  Authority: $$(solana-keygen pubkey $(AUTHORITY_WALLET))"
@@ -100,7 +101,7 @@ logs: ## Show validator logs
 	solana logs
 
 localnet-expose:
-	npx localtunnel --port 8899 --subdomain myrpcendpoint &
+	@nohup bash -c 'while true; do npx localtunnel --port 8899 --subdomain myrpcendpoint; sleep 300; done' >/dev/null 2>&1 &
 
 dev: validator-start airdrop-all deploy initialize status localnet-expose logs ## Full dev setup: start validator, airdrop all wallets, deploy, initialize, expose rpc
 	@echo "$(GREEN)Development environment ready!$(NC)"
