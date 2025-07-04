@@ -155,6 +155,92 @@ export type CryptoPvp = {
       "args": []
     },
     {
+      "name": "commitMove",
+      "discriminator": [
+        27,
+        16,
+        69,
+        212,
+        175,
+        110,
+        123,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "game",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "gameId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "signer": true
+        },
+        {
+          "name": "playerProfile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "gameId",
+          "type": "u64"
+        },
+        {
+          "name": "moveHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "createGame",
       "discriminator": [
         124,
@@ -262,15 +348,6 @@ export type CryptoPvp = {
             "defined": {
               "name": "wagerAmount"
             }
-          }
-        },
-        {
-          "name": "moveHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
           }
         }
       ]
@@ -407,15 +484,6 @@ export type CryptoPvp = {
         {
           "name": "gameId",
           "type": "u64"
-        },
-        {
-          "name": "moveHash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
         }
       ]
     },
@@ -859,6 +927,9 @@ export type CryptoPvp = {
         "variants": [
           {
             "name": "waitingForPlayer"
+          },
+          {
+            "name": "commitPhase"
           },
           {
             "name": "revealPhase"
