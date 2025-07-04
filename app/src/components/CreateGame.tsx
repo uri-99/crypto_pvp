@@ -48,21 +48,6 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
       if (!wallet) throw new Error('Wallet not available');
       if (!connection) throw new Error('Connection not available');
       
-      // Generate random salt
-      const saltArr = new Uint8Array(32);
-      crypto.getRandomValues(saltArr);
-      
-      // For demo, use 'rock' as move
-      const move = 'rock';
-      
-      // Hash move+salt (move as 0=rock, 1=paper, 2=scissors)
-      const moveIdx = 0; // rock
-      const moveData = new Uint8Array([moveIdx, ...saltArr]); // [move, ...salt]
-      
-      // Use browser crypto.subtle.digest for SHA-256
-      const hashBuffer = await crypto.subtle.digest('SHA-256', moveData);
-      const moveHash = new Uint8Array(hashBuffer);
-      
       // Derive PDAs
       const [globalStatePda] = await web3.PublicKey.findProgramAddress([
         Buffer.from('global_state')
@@ -86,10 +71,11 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
         wallet.publicKey.toBytes()
       ], PROGRAM_ID);
       
-      // Send transaction
+      console.log('🎮 Creating game with wager:', selectedWager);
+      
+      // Send transaction - only pass wager, no move hash
       await program.methods.createGame(
-        getWagerEnum(selectedWager),
-        moveHash
+        getWagerEnum(selectedWager)
       ).accounts({
         game: gamePda,
         globalState: globalStatePda,
@@ -98,8 +84,10 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
         systemProgram: web3.SystemProgram.programId,
       }).rpc();
       
-      // Call parent handler with the actual game ID
-      onCreateGame(selectedWager, move as Move, gameCounter.toString());
+      console.log('✅ Game created successfully! Game ID:', gameCounter);
+      
+      // Call parent handler with the actual game ID (no move since we don't commit during creation)
+      onCreateGame(selectedWager, 'rock' as Move, gameCounter.toString());
     } catch (e) {
       console.error('Error details:', e);
       alert('Error creating game: ' + (e instanceof Error ? e.message : e));
