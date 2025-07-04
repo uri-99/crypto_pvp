@@ -1,6 +1,7 @@
 import { Plus, Users, Trophy, Play } from 'lucide-react';
 import { Game, WagerAmount } from '../App';
 import { useMyGames } from '../utils/useGames';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 interface HomeProps {
   onCreateGame: () => void;
@@ -16,6 +17,7 @@ export function Home({
   getWagerDisplay 
 }: HomeProps) {
   const { myGames, loading: myGamesLoading } = useMyGames();
+  const { publicKey } = useWallet();
   return (
     <div className="max-w-2xl mx-auto mt-16">
       {/* Title Section (no card) */}
@@ -89,17 +91,31 @@ export function Home({
                       <span className="text-sm px-2 py-1 rounded" style={{
                         background: game.status === 'WaitingForPlayer' ? 'rgba(255, 193, 7, 0.2)' : 
                                   game.status === 'CommitPhase' ? 'rgba(40, 167, 69, 0.2)' :
-                                  game.status === 'RevealPhase' ? 'rgba(108, 117, 125, 0.2)' :
+                                  game.status === 'RevealPhase' ? 'rgba(99, 102, 241, 0.3)' :
                                   'rgba(128, 128, 128, 0.2)',
                         color: game.status === 'WaitingForPlayer' ? '#ffc107' : 
                                game.status === 'CommitPhase' ? '#28a745' :
-                               game.status === 'RevealPhase' ? '#6c757d' :
+                               game.status === 'RevealPhase' ? '#6366f1' :
                                '#808080'
                       }}>
-                        {game.status === 'WaitingForPlayer' ? 'Waiting for opponent' :
-                         game.status === 'CommitPhase' ? 'Choose your move' :
-                         game.status === 'RevealPhase' ? 'Revealing moves' : 
-                         game.status === 'Finished' ? 'Game finished' : 'Active'}
+                        {(() => {
+                          if (game.status === 'WaitingForPlayer') {
+                            return 'Waiting for opponent';
+                          } else if (game.status === 'CommitPhase') {
+                            // Check if current player has already committed
+                            const playerAddress = publicKey?.toString();
+                            const isPlayer1 = game.player1 === playerAddress;
+                            const isPlayer2 = game.player2 === playerAddress;
+                            const myMove = isPlayer1 ? game.player1Move : game.player2Move;
+                            return myMove ? 'Waiting for opponent' : 'Choose your move';
+                          } else if (game.status === 'RevealPhase') {
+                            return '👁️ Ready to reveal!';
+                          } else if (game.status === 'Finished') {
+                            return 'Game finished';
+                          } else {
+                            return 'Active';
+                          }
+                        })()}
                       </span>
                     </div>
                     <div className="text-sm mt-1" style={{color: 'rgba(255,255,255,0.70)'}}>
