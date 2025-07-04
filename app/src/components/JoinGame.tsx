@@ -50,22 +50,7 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
       if (!wallet) throw new Error('Wallet not available');
       if (!connection) throw new Error('Connection not available');
       
-      // Generate random salt (copying exact pattern from CreateGame.tsx)
-      const saltArr = new Uint8Array(32);
-      crypto.getRandomValues(saltArr);
-      
-      // For demo, use 'rock' as move
-      const move = 'rock';
-      
-      // Hash move+salt (move as 0=rock, 1=paper, 2=scissors)
-      const moveIdx = 0; // rock
-      const moveData = new Uint8Array([moveIdx, ...saltArr]); // [move, ...salt]
-      
-      // Use browser crypto.subtle.digest for SHA-256
-      const hashBuffer = await crypto.subtle.digest('SHA-256', moveData);
-      const moveHash = new Uint8Array(hashBuffer);
-      
-      // Setup provider and program (copying exact pattern from CreateGame.tsx)
+      // Setup provider and program
       const opts = AnchorProvider.defaultOptions();
       const provider = new AnchorProvider(connection, wallet as any, opts);
       const program = new Program(idl as any, provider);
@@ -82,19 +67,22 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
         wallet.publicKey.toBytes()
       ], PROGRAM_ID);
       
-      // Send transaction (copying exact pattern from CreateGame.tsx)
+      console.log('🎮 Joining game:', selectedGame);
+      
+      // Send transaction - only pass game_id, no move hash
       await program.methods.joinGame(
-        gameIdBN,  // _game_id parameter 
-        moveHash   // move_hash parameter (this was missing!)
+        gameIdBN  // Only _game_id parameter
       ).accounts({
         game: gamePda,
         player: wallet.publicKey,
-        player2Profile: playerProfilePda,  // Use camelCase like CreateGame.tsx
+        player2Profile: playerProfilePda,
         systemProgram: web3.SystemProgram.programId,
       }).rpc();
       
-      // Call parent handler for UI state
-      await onJoinGame(selectedGame, move as Move);
+      console.log('✅ Successfully joined game:', selectedGame);
+      
+      // Call parent handler for UI state (no move since we don't commit during join)
+      await onJoinGame(selectedGame, 'rock' as Move);
     } catch (e) {
       console.error('Error details:', e);
       alert('Error joining game: ' + (e instanceof Error ? e.message : e));
