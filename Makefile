@@ -14,7 +14,7 @@ AUTHORITY_WALLET ?= ~/.config/solana/authority.json
 PLAYER_ALICE_WALLET ?= ~/.config/solana/playerAlice.json
 PLAYER_BOB_WALLET ?= ~/.config/solana/playerBob.json
 
-.PHONY: help setup build deploy test clean validator-start validator-stop airdrop airdrop-all alice_create bob_create alice_join bob_join alice_reveal bob_reveal initialize
+.PHONY: help setup build deploy test clean validator-start validator-stop airdrop airdrop-all alice_create bob_create alice_join bob_join alice_reveal bob_reveal initialize webapp-install webapp webapp-build
 
 help: ## Show this help message
 	@echo "$(GREEN)Crypto PvP Development Commands$(NC)"
@@ -38,6 +38,10 @@ validator-stop: ## Stop local Solana validator
 	@echo "$(RED)Stopping local Solana validator...$(NC)"
 	pkill -f solana-test-validator || true
 	@echo "$(GREEN)Validator stopped!$(NC)"
+	@echo "$(RED)Stopping RPC tunnel...$(NC)"
+	pkill -f "npm exec localtunnel" || true
+	pkill -f "npx localtunnel" || true
+	@echo "$(GREEN)Tunnel stopped!$(NC)"
 
 airdrop: ## Airdrop 10 SOL to default wallet
 	@echo "$(GREEN)Airdropping 10 SOL to default wallet...$(NC)"
@@ -48,11 +52,11 @@ airdrop: ## Airdrop 10 SOL to default wallet
 airdrop-all: ## Airdrop 5 SOL to all test wallets (authority, playerAlice, playerBob)
 	@echo "$(GREEN)Airdropping 5 SOL to all test wallets...$(NC)"
 	@echo "$(YELLOW)Funding authority wallet...$(NC)"
-	solana airdrop 5 $(AUTHORITY_WALLET)
+	solana airdrop 5.1 $(AUTHORITY_WALLET)
 	@echo "$(YELLOW)Funding playerAlice wallet...$(NC)"
-	solana airdrop 5 $(PLAYER_ALICE_WALLET)
+	solana airdrop 5.1 $(PLAYER_ALICE_WALLET)
 	@echo "$(YELLOW)Funding playerBob wallet...$(NC)"
-	solana airdrop 5 $(PLAYER_BOB_WALLET)
+	solana airdrop 5.1 $(PLAYER_BOB_WALLET)
 	@echo "$(GREEN)All wallets funded!$(NC)"
 	@echo "$(GREEN)Wallet addresses:$(NC)"
 	@echo "  Authority: $$(solana-keygen pubkey $(AUTHORITY_WALLET))"
@@ -96,8 +100,12 @@ logs: ## Show validator logs
 	@echo "$(GREEN)Showing validator logs (Ctrl+C to exit)...$(NC)"
 	solana logs
 
-dev: validator-start airdrop-all deploy initialize status logs ## Full dev setup: start validator, airdrop all wallets, deploy, initialize
+localnet-expose:
+	@nohup bash -c 'while true; do npx localtunnel --port 8899 --subdomain myrpcendpoint; sleep 300; done' >/dev/null 2>&1 &
+
+dev: validator-start airdrop-all deploy initialize status localnet-expose logs ## Full dev setup: start validator, airdrop all wallets, deploy, initialize, expose rpc
 	@echo "$(GREEN)Development environment ready!$(NC)"
+	@echo "$(GREEN)RPC exposed in https://myrpcendpoint.loca.lt"
 	@echo "$(YELLOW)Your program is deployed and ready for testing$(NC)"
 
 alice_create: ## Alice creates a game with specified wager (usage: make alice_create sol01)
@@ -184,6 +192,21 @@ test: ## Run Anchor tests
 test-with-validator: ## Run tests with fresh validator
 	@echo "$(GREEN)Running tests with fresh validator...$(NC)"
 	anchor test
+
+webapp-install: ## Install webapp dependencies
+	@echo "$(GREEN)Installing webapp dependencies...$(NC)"
+	cd app && yarn install
+	@echo "$(GREEN)Webapp dependencies installed!$(NC)"
+
+webapp: ## Start React development server
+	@echo "$(GREEN)Starting React webapp on http://localhost:3000...$(NC)"
+	@echo "$(YELLOW)Press Ctrl+C to stop the server$(NC)"
+	cd app && yarn dev
+
+webapp-build: ## Build webapp for production
+	@echo "$(GREEN)Building webapp for production...$(NC)"
+	cd app && yarn build
+	@echo "$(GREEN)Webapp built successfully!$(NC)"
 
 clean: validator-stop ## Clean build artifacts (keypairs safe in ~/.config/solana/anchor-keys)
 	@echo "$(GREEN)Cleaning build artifacts...$(NC)"
