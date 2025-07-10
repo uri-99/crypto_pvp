@@ -32,16 +32,15 @@ interface GamePlayProps {
   playerAddress: string;
 }
 
-export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerAddress }: GamePlayProps) {
-  const [simulatedPlayer2Joined, setSimulatedPlayer2Joined] = useState(false);
-  const [simulatedMovesCommitted, setSimulatedMovesCommitted] = useState(false);
+export function GamePlay({ game, onRevealMoves: _onRevealMoves, onBack, getWagerDisplay, playerAddress }: GamePlayProps) {
+  const [simulatedPlayer2Joined] = useState(false);
+  const [simulatedMovesCommitted] = useState(false);
   const [mySelectedMove, setMySelectedMove] = useState<'rock' | 'paper' | 'scissors' | null>(null);
   const [showRevealPage, setShowRevealPage] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [opponentMove, setOpponentMove] = useState<'rock' | 'paper' | 'scissors' | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [moveHash, setMoveHash] = useState<string | null>(null);
   const [salt, setSalt] = useState<string | null>(null);
   const [gameState, setGameState] = useState(game.status);
   const [showSaltInfo, setShowSaltInfo] = useState(false);
@@ -177,7 +176,7 @@ export function GamePlay({ game, onRevealMoves, onBack, getWagerDisplay, playerA
     pollGameState();
     
     return () => clearInterval(interval);
-  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress, isPlayer1, waitingForOpponentReveal]);
+  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress, isPlayer1, waitingForOpponentReveal, currentGameData]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -286,7 +285,6 @@ ${index < allGames.length - 1 ? '' : ''}`;
       // Store salt and hash for later use (for reveal phase)
       const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
       setSalt(saltHex);
-      setMoveHash(Array.from(moveHash).map(b => b.toString(16).padStart(2, '0')).join(''));
       
       // Also store in localStorage for persistence
       localStorage.setItem(`game_${currentGameData.id}_move`, move);
@@ -630,11 +628,6 @@ ${index < allGames.length - 1 ? '' : ''}`;
   };
 
   // Determine winner
-  const getRandomOpponentMove = (): 'rock' | 'paper' | 'scissors' => {
-    const moves = ['rock', 'paper', 'scissors'] as const;
-    return moves[Math.floor(Math.random() * moves.length)];
-  };
-
   const determineWinner = (playerMove: string, opponentMove: string) => {
     if (playerMove === opponentMove) return 'tie';
     if (

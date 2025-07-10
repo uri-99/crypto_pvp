@@ -105,7 +105,6 @@ export function Home({
                             // Check if current player has already committed
                             const playerAddress = publicKey?.toString();
                             const isPlayer1 = game.player1 === playerAddress;
-                            const isPlayer2 = game.player2 === playerAddress;
                             const myMove = isPlayer1 ? game.player1Move : game.player2Move;
                             return myMove ? 'Waiting for opponent' : 'Choose your move';
                           } else if (game.status === 'RevealPhase') {

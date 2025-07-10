@@ -6,9 +6,7 @@ import { GamePlay } from './components/GamePlay';
 import { GameResult } from './components/GameResult';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
-import idl from './idl/crypto_pvp.json';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -31,13 +29,10 @@ export interface Game {
   createdAt: Date;
 }
 
-const PROGRAM_ID = new web3.PublicKey(idl.address);
-
 function AppContent() {
   const [currentView, setCurrentView] = useState<GameView>('home');
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const wallet = useWallet();
-  const { connection } = useConnection();
 
   const handleCreateGame = (wager: WagerAmount, _move: Move, gameId?: string) => {
     // After creating game on blockchain, go to the game's detailed view
