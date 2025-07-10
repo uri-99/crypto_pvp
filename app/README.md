@@ -10,12 +10,7 @@ A React TypeScript frontend for the rock-paper-scissors Solana game.
 - **Game Play**: Real-time game board showing player moves and reveal phase
 - **Results**: Detailed game outcome with payout information
 
-### 🎨 Modern UI
-- Dark crypto-themed design
-- Responsive layout for mobile and desktop
-- Smooth animations and hover effects
-- Icon-based navigation using Lucide React
-
+Missing:
 ### 📊 Player Stats
 - Win/loss/tie tracking
 - Recent games history
@@ -54,18 +49,3 @@ yarn build
 - **Scissors** beats Paper
 - **Tie** returns original wagers
 - **Winner** takes entire pot (2x wager amount)
-
-## Mock Data
-
-Currently uses mock data for demonstration:
-- Player is hardcoded as "alice"
-- Games are stored in component state
-- No actual blockchain interactions
-
-## Integration Ready
-
-The frontend is designed to easily integrate with the Solana program:
-- Clean separation between UI and game logic
-- Type-safe interfaces matching the Rust program
-- Event handlers ready for Web3 wallet connections
-- Move commitment/reveal flow matches on-chain game states 
