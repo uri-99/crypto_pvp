@@ -58,7 +58,7 @@ export function useMyGames() {
   const { connection } = useConnection();
   const wallet = useWallet();
   
-  const refreshMyGames = async () => {
+  const refreshMyGames = useCallback(async () => {
     if (!wallet.publicKey) {
       setMyGames([]);
       return;
@@ -77,13 +77,13 @@ export function useMyGames() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [connection, wallet]);
   
   useEffect(() => {
     refreshMyGames();
     const interval = setInterval(refreshMyGames, 10000); // Refresh every 10 seconds
     return () => clearInterval(interval);
-  }, [wallet.publicKey]);
+  }, [refreshMyGames]);
   
   return { myGames, loading, refreshMyGames };
 } 
