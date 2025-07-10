@@ -108,7 +108,8 @@ export function GameResult({ game, onPlayAgain, onBackToHome, getWagerDisplay, p
                 Player 2 {!isPlayer1 && '(You)'}
               </div>
               <div className="text-sm font-mono text-secondary mb-2">
-                {game.player2?.slice(0, 8)}...
+                {game.player2 && game.player2 !== '11111111111111111111111111111111' ? 
+                  `${game.player2.slice(0, 8)}...` : 'Unknown Player'}
               </div>
               <div className="text-4xl mb-2">
                 {getMoveEmoji(game.player2Move)}

@@ -119,7 +119,7 @@ export function Home({
                     </div>
                     <div className="text-sm mt-1" style={{color: 'rgba(255,255,255,0.70)'}}>
                       Wager: {getWagerDisplay(game.wager)}
-                      {game.player2 && (
+                      {game.player2 && game.player2 !== '11111111111111111111111111111111' && (
                         <span className="ml-3">
                           vs {game.player2Name || `${game.player2.slice(0, 8)}...`}
                         </span>

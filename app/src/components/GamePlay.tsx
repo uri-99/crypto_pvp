@@ -1177,7 +1177,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
           <div className="text-center">
             <div className="text-sm text-secondary mb-2">Player 2 {isPlayer2 && '(You)'}</div>
             <div className="text-sm font-mono text-secondary mb-4">
-              {currentGameData.player2 ? `${currentGameData.player2.slice(0, 8)}...` : 
+              {realPlayer2Exists && currentGameData.player2 ? `${currentGameData.player2.slice(0, 8)}...` : 
                simulatedPlayer2Joined ? 'simulated...' : 'Waiting...'}
             </div>
             
