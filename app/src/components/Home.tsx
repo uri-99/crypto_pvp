@@ -1,6 +1,6 @@
 import { Plus, Users, Trophy, Play } from 'lucide-react';
 import { Game, WagerAmount } from '../App';
-import { useMyGames } from '../utils/useGames';
+import { useGetMyActiveGames } from '../utils/gameDataHooks';
 import { useWallet } from '@solana/wallet-adapter-react';
 
 interface HomeProps {
@@ -16,7 +16,7 @@ export function Home({
   onRejoinGame, 
   getWagerDisplay 
 }: HomeProps) {
-  const { myGames, loading: myGamesLoading } = useMyGames();
+  const { myActiveGames, myActiveGamesLoading } = useGetMyActiveGames();
   const { publicKey } = useWallet();
   return (
     <div className="max-w-2xl mx-auto mt-16">
@@ -67,21 +67,21 @@ export function Home({
       </div>
 
       {/* My Active Games Section */}
-      {myGames.length > 0 && (
+      {myActiveGames.length > 0 && (
         <div className="card mb-6" style={{background: 'var(--surface)'}}>
           <h3 className="text-2xl font-bold mb-4 flex items-center gap-2" style={{color: 'rgba(255,255,255,0.88)'}}>
             <Play size={24} />
             My Active Games
           </h3>
           
-          {myGamesLoading ? (
+          {myActiveGamesLoading ? (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto"></div>
               <p className="text-base mt-2" style={{color: 'rgba(255,255,255,0.70)'}}>Loading games...</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {myGames.map((game) => (
+              {myActiveGames.map((game) => (
                 <div key={game.id} className="game-card p-3 rounded-lg border border-opacity-20 flex items-center justify-between" style={{background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)'}}>
                   <div>
                     <div className="flex items-center gap-4">

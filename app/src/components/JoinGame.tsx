@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { WagerAmount, Move } from '../App';
 import { ArrowLeft, Users, Clock, Filter, Plus } from 'lucide-react';
-import { useGames } from '../utils/useGames';
+import { useGetAvailableGames } from '../utils/gameDataHooks';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
@@ -18,7 +18,7 @@ interface JoinGameProps {
 const PROGRAM_ID = new web3.PublicKey(idl.address);
 
 export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: JoinGameProps) {
-  const { games, loading } = useGames();
+  const { availableGames, availableGamesLoading } = useGetAvailableGames();
   const wallet = useWallet();
   const { connection } = useConnection();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
@@ -26,14 +26,14 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
   const [wagerFilter, setWagerFilter] = useState<WagerAmount | 'all'>('all');
 
   // Filter games to show only those waiting for players (excluding current user's games)
-  let availableGames = games.filter(g => 
+  let availableGamesToShow = availableGames.filter(g => 
     g.status === 'WaitingForPlayer' && 
     g.player1 !== wallet.publicKey?.toString()
   );
 
   // Apply wager filter
   if (wagerFilter !== 'all') {
-    availableGames = availableGames.filter(g => g.wager === wagerFilter);
+    availableGamesToShow = availableGamesToShow.filter(g => g.wager === wagerFilter);
   }
 
   const handleJoinGame = async () => {
@@ -82,7 +82,7 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
       console.log('✅ Successfully joined game:', selectedGame);
       
       // Call parent handler for UI state (no move since we don't commit during join)
-      await onJoinGame(selectedGame, 'rock' as Move);
+              await onJoinGame(selectedGame, 'rock' as Move);
     } catch (e) {
       console.error('Error details:', e);
       alert('Error joining game: ' + (e instanceof Error ? e.message : e));
@@ -90,7 +90,7 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
     setIsJoining(false);
   };
 
-  const selectedGameData = availableGames.find(g => g.id === selectedGame);
+  const selectedGameData = selectedGame ? availableGamesToShow.find(g => g.id === selectedGame) : null;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -133,12 +133,12 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
           </div>
         </div>
 
-        {loading ? (
+        {availableGamesLoading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-2 border-accent border-t-transparent mx-auto mb-4"></div>
             <p className="text-secondary">Loading available games...</p>
           </div>
-        ) : availableGames.length === 0 ? (
+        ) : availableGamesToShow.length === 0 ? (
           <div className="text-center py-8">
             <Clock size={48} className="mx-auto text-secondary mb-4" />
             {wagerFilter === 'all' ? (
@@ -181,7 +181,7 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
           </div>
         ) : (
           <div className="space-y-4">
-            {availableGames.map((game) => (
+            {availableGamesToShow.map((game) => (
               <div
                 key={game.id}
                 onClick={() => setSelectedGame(game.id)}
@@ -277,7 +277,7 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
         </div>
       )}
 
-      {!selectedGame && availableGames.length > 0 && (
+      {!selectedGame && availableGamesToShow.length > 0 && (
         <div className="text-center">
           <p className="text-secondary">Select a game above to continue</p>
         </div>
