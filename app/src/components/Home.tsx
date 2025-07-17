@@ -20,7 +20,7 @@ export function Home({
   const { publicKey } = useWallet();
   return (
     <div className="max-w-2xl mx-auto mt-16">
-      {/* Title Section (no card) */}
+      {/* Title Section */}
       <div className="text-center mb-6">
         <h2 className="text-4xl font-extrabold mb-2" style={{color: 'rgba(255,255,255,0.88)'}}>⚔️ Crypto PvP — Rock Paper Scissors</h2>
         <p className="text-lg mb-1" style={{color: 'rgba(255,255,255,0.80)'}}>Challenge opponents in rock-paper-scissors with SOL stakes!</p>
@@ -140,7 +140,7 @@ export function Home({
         </div>
       )}
 
-      {/* Action Buttons Section (no card) */}
+      {/* Action Buttons Section */}
       <div className="flex gap-4 justify-center mt-10">
         <button 
           onClick={onCreateGame}

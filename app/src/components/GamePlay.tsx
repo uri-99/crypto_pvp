@@ -67,9 +67,7 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
     currentGameData.player2.trim() !== '' && 
     currentGameData.player2 !== '11111111111111111111111111111111';
   const bothPlayersCommitted = currentGameData.player1Move && currentGameData.player2Move;
-  const canReveal = gameState === 'RevealPhase' && !myMove;
   const shouldShowRevealInterface = gameState === 'RevealPhase' && !myMove && uiState === 'playing';
-  const waitingForOpponentReveal = gameState === 'RevealPhase' && myMove && !opponentMove;
 
   // Validate initial game data
   useEffect(() => {
@@ -183,7 +181,7 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
     pollGameState();
     
     return () => clearInterval(interval);
-  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress, isPlayer1, waitingForOpponentReveal, currentGameData, uiState]);
+  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress]);
 
   const copyToClipboard = async (text: string) => {
     try {
