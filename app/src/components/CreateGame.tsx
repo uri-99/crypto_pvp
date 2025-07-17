@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { WagerAmount, Move } from '../App';
+import { WagerAmount } from '../App';
 import { ArrowLeft, DollarSign } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
@@ -7,7 +7,7 @@ import { Program, AnchorProvider, web3, BN } from '@coral-xyz/anchor';
 import idl from '../idl/crypto_pvp.json';
 
 interface CreateGameProps {
-  onCreateGame: (_wager: WagerAmount, _move: Move, _gameId?: string) => void;
+  onCreateGame: (_wager: WagerAmount, _gameId?: string) => void;
   onBack: () => void;
 }
 
@@ -86,8 +86,8 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
       
       console.log('✅ Game created successfully! Game ID:', gameCounter);
       
-      // Call parent handler with the actual game ID (no move since we don't commit during creation)
-      onCreateGame(selectedWager, 'rock' as Move, gameCounter.toString());
+      // Call parent handler with the actual game ID
+      onCreateGame(selectedWager, gameCounter.toString());
     } catch (e) {
       console.error('Error details:', e);
       alert('Error creating game: ' + (e instanceof Error ? e.message : e));

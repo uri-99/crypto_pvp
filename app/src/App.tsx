@@ -34,7 +34,7 @@ function AppContent() {
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const wallet = useWallet();
 
-  const handleCreateGame = (wager: WagerAmount, _move: Move, gameId?: string) => {
+  const handleCreateGame = (wager: WagerAmount, gameId?: string) => {
     // After creating game on blockchain, go to the game's detailed view
     setCurrentGame({
       id: gameId || '0', // Use the actual game ID from blockchain
