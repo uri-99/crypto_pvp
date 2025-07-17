@@ -65,15 +65,6 @@ function AppContent() {
     setCurrentView('play');
   };
 
-  const handleRevealMoves = () => {
-    // TODO: Implement reveal moves logic
-    if (currentGame) {
-      setCurrentView('result');
-    }
-  };
-
-
-
   const handleBackToHome = () => {
     setCurrentView('home');
     setCurrentGame(null);
@@ -134,7 +125,6 @@ function AppContent() {
           {currentView === 'play' && currentGame && (
             <GamePlay
               game={currentGame}
-              onRevealMoves={handleRevealMoves}
               onBack={handleBackToHome}
               getWagerDisplay={getWagerDisplay}
               playerAddress={wallet.publicKey?.toString() || ''}
@@ -158,6 +148,7 @@ function AppContent() {
 
 function App() {
   // Solana wallet setup
+  // TODO configure for prod
   const endpoint = useMemo(() => 'http://localhost:8899', []);
   const wallets = useMemo(() => [], []);
 

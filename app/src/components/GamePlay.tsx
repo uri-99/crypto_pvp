@@ -26,13 +26,12 @@ function generateSalt(): Uint8Array {
 
 interface GamePlayProps {
   game: Game;
-  onRevealMoves: () => void;
   onBack: () => void;
   getWagerDisplay: (_wager: WagerAmount) => string;
   playerAddress: string;
 }
 
-export function GamePlay({ game, onRevealMoves: _onRevealMoves, onBack, getWagerDisplay, playerAddress }: GamePlayProps) {
+export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GamePlayProps) {
   const [simulatedPlayer2Joined] = useState(false);
   const [simulatedMovesCommitted] = useState(false);
   const [mySelectedMove, setMySelectedMove] = useState<'rock' | 'paper' | 'scissors' | null>(null);
