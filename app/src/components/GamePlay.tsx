@@ -32,29 +32,45 @@ interface GamePlayProps {
 }
 
 export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GamePlayProps) {
-  const [simulatedPlayer2Joined] = useState(false);
-  const [simulatedMovesCommitted] = useState(false);
+  // Essential game state
+  const [gameState, setGameState] = useState(game.status);
+  const [currentGameData, setCurrentGameData] = useState(game);
   const [mySelectedMove, setMySelectedMove] = useState<'rock' | 'paper' | 'scissors' | null>(null);
-  const [showRevealPage, setShowRevealPage] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [opponentMove, setOpponentMove] = useState<'rock' | 'paper' | 'scissors' | null>(null);
+  const [salt, setSalt] = useState<string | null>(null);
+  
+  // Loading states
   const [isCommitting, setIsCommitting] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [salt, setSalt] = useState<string | null>(null);
-  const [gameState, setGameState] = useState(game.status);
-  const [showSaltInfo, setShowSaltInfo] = useState(false);
-  const [saltCopied, setSaltCopied] = useState(false);
-  const [allDataCopied, setAllDataCopied] = useState(false);
-  const [showBackupPrompt, setShowBackupPrompt] = useState(false);
-  const [currentGameData, setCurrentGameData] = useState(game);
-  const [waitingForOpponentReveal, setWaitingForOpponentReveal] = useState(false);
-  const [showManualInput, setShowManualInput] = useState(false);
-  const [manualMove, setManualMove] = useState<'rock' | 'paper' | 'scissors'>('rock');
-  const [manualSalt, setManualSalt] = useState('');
+  
+  // UI state management
+  const [uiState, setUIState] = useState<'playing' | 'saltBackup' | 'revealing' | 'waitingForOpponent' | 'results'>('playing');
+  
+  // Manual input state
+  const [manualInput, setManualInput] = useState({
+    move: 'rock' as 'rock' | 'paper' | 'scissors',
+    salt: '',
+    isVisible: false
+  });
+  
+  // Copy feedback
+  const [copyFeedback, setCopyFeedback] = useState<'salt' | 'all' | null>(null);
   
   const { publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
   
+  // Derived values (no longer stored in state)
+  const isPlayer1 = currentGameData.player1 === playerAddress;
+  const isPlayer2 = currentGameData.player2 === playerAddress;
+  const myMove = isPlayer1 ? currentGameData.player1Move : currentGameData.player2Move;
+  const opponentMove = isPlayer1 ? currentGameData.player2Move : currentGameData.player1Move;
+  const realPlayer2Exists = currentGameData.player2 && 
+    currentGameData.player2.trim() !== '' && 
+    currentGameData.player2 !== '11111111111111111111111111111111';
+  const bothPlayersCommitted = currentGameData.player1Move && currentGameData.player2Move;
+  const canReveal = gameState === 'RevealPhase' && !myMove;
+  const shouldShowRevealInterface = gameState === 'RevealPhase' && !myMove && uiState === 'playing';
+  const waitingForOpponentReveal = gameState === 'RevealPhase' && myMove && !opponentMove;
+
   // Validate initial game data
   useEffect(() => {
     try {
@@ -69,10 +85,6 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
     }
   }, [game]);
   
-  const isPlayer1 = currentGameData.player1 === playerAddress;
-  const isPlayer2 = currentGameData.player2 === playerAddress;
-  const myMove = isPlayer1 ? currentGameData.player1Move : currentGameData.player2Move;
-
   // Enhanced polling for ALL game phases
   useEffect(() => {
     if (gameState === 'Finished') return;
@@ -135,20 +147,16 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
           if (newStatus === 'RevealPhase' && gameState === 'CommitPhase') {
             console.log('🎯 Both players committed! Moving to reveal phase...');
             // Don't automatically hide salt backup - let user manually continue
-            // setShowSaltInfo(false);  // Commented out - user controls this
-            setShowRevealPage(false); // Will be set by reveal button
+            if (uiState === 'saltBackup') {
+              // Stay in saltBackup until user explicitly continues
+            } else {
+              setUIState('playing'); // Default to playing state
+            }
           }
           
           if (newStatus === 'Finished') {
             console.log('🏁 Game finished!');
-            setShowResults(true);
-            setWaitingForOpponentReveal(false);
-            
-            // Set opponent move for results display
-            const opponentMove = isPlayer1 ? updatedGame.player2Move : updatedGame.player1Move;
-            if (opponentMove) {
-              setOpponentMove(opponentMove);
-            }
+            setUIState('results');
           }
         }
 
@@ -157,9 +165,9 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
           const myRevealMove = isPlayer1 ? updatedGame.player1Move : updatedGame.player2Move;
           const opponentRevealMove = isPlayer1 ? updatedGame.player2Move : updatedGame.player1Move;
           
-          if (myRevealMove && !opponentRevealMove && !waitingForOpponentReveal) {
+          if (myRevealMove && !opponentRevealMove) {
             console.log('✅ My move revealed, waiting for opponent...');
-            setWaitingForOpponentReveal(true);
+            setUIState('waitingForOpponent');
             setIsRevealing(false);
           }
         }
@@ -175,13 +183,13 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
     pollGameState();
     
     return () => clearInterval(interval);
-  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress, isPlayer1, waitingForOpponentReveal, currentGameData]);
+  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress, isPlayer1, waitingForOpponentReveal, currentGameData, uiState]);
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setSaltCopied(true);
-      setTimeout(() => setSaltCopied(false), 2000);
+      setCopyFeedback('salt');
+      setTimeout(() => setCopyFeedback(null), 2000);
     } catch (err) {
       console.error('Failed to copy: ', err);
     }
@@ -202,68 +210,10 @@ Keep this information safe until the game is finished.`;
 
     try {
       await navigator.clipboard.writeText(gameData);
-      setAllDataCopied(true);
-      setTimeout(() => setAllDataCopied(false), 3000);
+      setCopyFeedback('all');
+      setTimeout(() => setCopyFeedback(null), 3000);
     } catch (err) {
       console.error('Failed to copy game data: ', err);
-    }
-  };
-
-  const getAllStoredGameData = () => {
-    const allGames = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes('_move')) {
-        const gameId = key.split('_')[1];
-        const move = localStorage.getItem(`game_${gameId}_move`);
-        const salt = localStorage.getItem(`game_${gameId}_salt`);
-        if (move && salt) {
-          allGames.push({ gameId, move, salt });
-        }
-      }
-    }
-    return allGames;
-  };
-
-  const copyAllStoredData = async () => {
-    const allGames = getAllStoredGameData();
-    
-    if (allGames.length === 0) {
-      alert('No game data found in storage');
-      return;
-    }
-
-    let backupData = `CRYPTO PVP - ALL GAMES BACKUP
-=====================================
-Player Address: ${playerAddress}
-Backup Date: ${new Date().toISOString()}
-Total Games: ${allGames.length}
-
-`;
-
-    allGames.forEach((game, index) => {
-      backupData += `
-GAME #${game.gameId}
------------
-Move: ${game.move}
-Salt: ${game.salt}
-${index < allGames.length - 1 ? '' : ''}`;
-    });
-
-    backupData += `
-
-⚠️ IMPORTANT NOTES:
-- Each game requires BOTH move and salt to reveal
-- This data is stored locally on your device
-- Keep this backup safe until all games are finished
-- If you lose this data, you cannot reveal your moves!`;
-
-    try {
-      await navigator.clipboard.writeText(backupData);
-      alert(`✅ Copied backup data for ${allGames.length} game(s) to clipboard!`);
-    } catch (err) {
-      console.error('Failed to copy all game data: ', err);
-      alert('❌ Failed to copy backup data');
     }
   };
 
@@ -302,7 +252,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
       
       console.log('✅ Move committed successfully:', tx);
       setMySelectedMove(move);
-      setShowSaltInfo(true);
+      setUIState('saltBackup');
       
       // Update current game data to reflect our committed move
       setCurrentGameData(prev => ({
@@ -455,7 +405,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
   };
 
   const handleManualReveal = async () => {
-    if (!publicKey || isRevealing || !manualSalt.trim()) return;
+    if (!publicKey || isRevealing || !manualInput.salt.trim()) return;
     
     setIsRevealing(true);
     
@@ -466,23 +416,23 @@ ${index < allGames.length - 1 ? '' : ''}`;
 
       // Convert move to proper enum format for the contract
       let moveChoice;
-      switch (manualMove) {
+      switch (manualInput.move) {
         case 'rock': moveChoice = { rock: {} }; break;
         case 'paper': moveChoice = { paper: {} }; break;
         case 'scissors': moveChoice = { scissors: {} }; break;
-        default: throw new Error(`Invalid move: ${manualMove}`);
+        default: throw new Error(`Invalid move: ${manualInput.move}`);
       }
       
       // Validate and convert salt from hex to bytes
-      if (!/^[0-9a-fA-F]{64}$/.test(manualSalt)) {
+      if (!/^[0-9a-fA-F]{64}$/.test(manualInput.salt)) {
         alert('Invalid salt format. Salt must be exactly 64 hex characters.');
         setIsRevealing(false);
         return;
       }
       
-      const saltBytes = new Uint8Array(manualSalt.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+      const saltBytes = new Uint8Array(manualInput.salt.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
 
-      console.log('🔓 Revealing move manually for game:', currentGameData.id, '- Move:', manualMove);
+      console.log('🔓 Revealing move manually for game:', currentGameData.id, '- Move:', manualInput.move);
       console.log('Manual salt bytes:', Array.from(saltBytes));
 
       // Debug player addresses
@@ -563,13 +513,12 @@ ${index < allGames.length - 1 ? '' : ''}`;
       // Update local state to show we've revealed
       setCurrentGameData(prev => ({
         ...prev,
-        [isPlayer1 ? 'player1Move' : 'player2Move']: manualMove
+        [isPlayer1 ? 'player1Move' : 'player2Move']: manualInput.move
       }));
       
       // Update UI state
-      setMySelectedMove(manualMove);
-      setShowManualInput(false);
-      setShowRevealPage(false);
+      setMySelectedMove(manualInput.move);
+      setUIState('revealing');
       setIsRevealing(false); // Reset revealing state on success
       
     } catch (error) {
@@ -580,15 +529,6 @@ ${index < allGames.length - 1 ? '' : ''}`;
   };
   
   // Game flow: waiting -> playing -> revealing -> finished
-  // Check if player2 actually exists (not null, undefined, empty, or default pubkey)
-  const realPlayer2Exists = currentGameData.player2 && 
-    currentGameData.player2.trim() !== '' && 
-    currentGameData.player2 !== '11111111111111111111111111111111';
-  const bothPlayersJoined = realPlayer2Exists || simulatedPlayer2Joined;
-  const bothPlayersCommitted = (currentGameData.player1Move && currentGameData.player2Move) || simulatedMovesCommitted;
-  const canReveal = gameState === 'RevealPhase' && !myMove; // Can reveal if in reveal phase and haven't revealed yet
-  const shouldShowRevealInterface = gameState === 'RevealPhase' && !myMove && !showSaltInfo; // Don't show if user is still backing up salt
-
   const getMoveEmoji = (move: string | undefined) => {
     switch (move) {
       case 'rock': return '🪨';
@@ -597,18 +537,6 @@ ${index < allGames.length - 1 ? '' : ''}`;
       default: return '❓';
     }
   };
-
-  // Debug logging for conditional rendering
-  console.log('🔍 Debug UI State:', {
-    gameState,
-    myMove,
-    mySelectedMove,
-    showSaltInfo,
-    showRevealPage,
-    waitingForOpponentReveal,
-    shouldShowRevealInterface,
-    canReveal
-  });
 
   const getStatusMessage = () => {
     if (gameState === 'WaitingForPlayer') {
@@ -640,7 +568,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
   };
 
   // Show results page
-  if (showResults && mySelectedMove && opponentMove) {
+  if (uiState === 'results' && mySelectedMove && opponentMove) {
     const result = determineWinner(mySelectedMove, opponentMove);
     
     return (
@@ -698,7 +626,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
   }
 
   // Show waiting for opponent reveal page
-  if (waitingForOpponentReveal) {
+  if (uiState === 'waitingForOpponent') {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
@@ -735,7 +663,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
   }
 
   // Show reveal page
-  if (showRevealPage && !showResults) {
+  if (uiState === 'revealing') {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
@@ -787,9 +715,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
                 onClick={() => {
                   console.log('📝 Opening manual input modal - preserving stored data');
                   // Reset manual input fields to avoid stale data
-                  setManualMove('rock');
-                  setManualSalt('');
-                  setShowManualInput(true);
+                  setManualInput({ move: 'rock', salt: '', isVisible: true });
                 }}
                 className="btn btn-secondary"
                 style={{ fontSize: '1rem', padding: '12px 24px' }}
@@ -804,7 +730,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
         </div>
 
         {/* Manual Input Modal */}
-        {showManualInput && (
+        {manualInput.isVisible && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
               <h3 className="text-xl font-bold mb-4">Manual Reveal</h3>
@@ -816,8 +742,8 @@ ${index < allGames.length - 1 ? '' : ''}`;
                 <div>
                   <label className="block text-sm font-medium mb-2">Your Move</label>
                   <select
-                    value={manualMove}
-                    onChange={(e) => setManualMove(e.target.value as 'rock' | 'paper' | 'scissors')}
+                    value={manualInput.move}
+                    onChange={(e) => setManualInput(prev => ({ ...prev, move: e.target.value as 'rock' | 'paper' | 'scissors' }))}
                     className="input w-full"
                   >
                     <option value="rock">🪨 Rock</option>
@@ -830,8 +756,8 @@ ${index < allGames.length - 1 ? '' : ''}`;
                   <label className="block text-sm font-medium mb-2">Salt (hex string)</label>
                   <input
                     type="text"
-                    value={manualSalt}
-                    onChange={(e) => setManualSalt(e.target.value)}
+                    value={manualInput.salt}
+                    onChange={(e) => setManualInput(prev => ({ ...prev, salt: e.target.value }))}
                     placeholder="Enter your 64-character salt..."
                     className="input w-full font-mono text-sm"
                     style={{ fontSize: '0.875rem' }}
@@ -846,8 +772,8 @@ ${index < allGames.length - 1 ? '' : ''}`;
                     onClick={() => {
                       const storedMove = localStorage.getItem(`game_${currentGameData.id}_move`) || mySelectedMove;
                       const storedSalt = localStorage.getItem(`game_${currentGameData.id}_salt`) || salt;
-                      if (storedMove) setManualMove(storedMove as 'rock' | 'paper' | 'scissors');
-                      if (storedSalt) setManualSalt(storedSalt);
+                      if (storedMove) setManualInput(prev => ({ ...prev, move: storedMove as 'rock' | 'paper' | 'scissors' }));
+                      if (storedSalt) setManualInput(prev => ({ ...prev, salt: storedSalt }));
                       console.log('🔄 Auto-filled from storage:', { storedMove, storedSalt });
                     }}
                     className="btn btn-secondary text-sm"
@@ -860,7 +786,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={handleManualReveal}
-                  disabled={isRevealing || !manualSalt.trim() || manualSalt.length !== 64}
+                  disabled={isRevealing || !manualInput.salt.trim() || manualInput.salt.length !== 64}
                   className="btn btn-primary flex-1"
                 >
                   {isRevealing ? (
@@ -875,7 +801,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
                 <button
                   onClick={() => {
                     console.log('❌ Canceling manual input - localStorage data preserved');
-                    setShowManualInput(false);
+                    setManualInput(prev => ({ ...prev, isVisible: false }));
                   }}
                   disabled={isRevealing}
                   className="btn btn-secondary"
@@ -891,7 +817,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
   }
 
   // Show salt info after committing move (PRIORITY - check this first!)
-  if (showSaltInfo && mySelectedMove && salt) {
+  if (uiState === 'saltBackup' && mySelectedMove && salt) {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
@@ -943,8 +869,8 @@ ${index < allGames.length - 1 ? '' : ''}`;
                   className="btn btn-secondary ml-2"
                   style={{ minWidth: '80px' }}
                 >
-                  {saltCopied ? <Check size={16} /> : <Copy size={16} />}
-                  {saltCopied ? 'Copied!' : 'Copy'}
+                  {copyFeedback === 'salt' ? <Check size={16} /> : <Copy size={16} />}
+                  {copyFeedback === 'salt' ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             </div>
@@ -956,11 +882,11 @@ ${index < allGames.length - 1 ? '' : ''}`;
               className="btn btn-primary"
               style={{ background: 'rgba(0, 123, 255, 0.8)', borderColor: 'rgba(0, 123, 255, 0.8)' }}
             >
-              {allDataCopied ? <Check size={16} /> : <Copy size={16} />}
-              {allDataCopied ? 'Copied All Data!' : 'Copy Complete Backup'}
+              {copyFeedback === 'all' ? <Check size={16} /> : <Copy size={16} />}
+              {copyFeedback === 'all' ? 'Copied All Data!' : 'Copy Complete Backup'}
             </button>
             <button
-              onClick={() => setShowBackupPrompt(true)}
+              onClick={() => setUIState('saltBackup')}
               className="btn btn-secondary"
             >
               📱 View All Games
@@ -978,7 +904,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
 
         <div className="text-center">
           <button 
-            onClick={() => setShowSaltInfo(false)}
+            onClick={() => setUIState('playing')}
             className="btn btn-primary"
           >
             Continue to Game
@@ -992,10 +918,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
                 </p>
               </div>
               <button 
-                onClick={() => {
-                  setShowSaltInfo(false);
-                  setShowRevealPage(true);
-                }}
+                onClick={() => setUIState('revealing')}
                 className="btn btn-success"
                 style={{ marginLeft: '0.5rem' }}
               >
@@ -1006,44 +929,13 @@ ${index < allGames.length - 1 ? '' : ''}`;
         </div>
 
         {/* Backup All Games Modal */}
-        {showBackupPrompt && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-              <h3 className="text-xl font-bold mb-4">All Stored Games</h3>
-              
-              <div className="mb-4">
-                <div className="text-sm text-secondary mb-2">Storage Info:</div>
-                <div className="text-xs p-2 rounded bg-gray-700">
-                  <div>• Data persists through page refresh ✅</div>
-                  <div>• Data stays after browser restart ✅</div>
-                  <div>• Data is device/browser specific 📱</div>
-                  <div>• You have {getAllStoredGameData().length} game(s) stored</div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  onClick={copyAllStoredData}
-                  className="btn btn-primary w-full"
-                >
-                  📋 Copy All Games Backup
-                </button>
-                <button
-                  onClick={() => setShowBackupPrompt(false)}
-                  className="btn btn-secondary w-full"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Removed the modal - it was duplicated and confusing */}
       </div>
     );
   }
 
   // Show waiting for other player page  
-  if (mySelectedMove && !showRevealPage && !showSaltInfo && gameState !== 'RevealPhase') {
+  if (mySelectedMove && uiState === 'playing' && gameState !== 'RevealPhase') {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
@@ -1177,11 +1069,11 @@ ${index < allGames.length - 1 ? '' : ''}`;
             <div className="text-sm text-secondary mb-2">Player 2 {isPlayer2 && '(You)'}</div>
             <div className="text-sm font-mono text-secondary mb-4">
               {realPlayer2Exists && currentGameData.player2 ? `${currentGameData.player2.slice(0, 8)}...` : 
-               simulatedPlayer2Joined ? 'simulated...' : 'Waiting...'}
+               'Waiting...'}
             </div>
             
             <div className="text-4xl mb-2">
-              {!bothPlayersJoined ? '⏳' :
+              {!realPlayer2Exists ? '⏳' :
                currentGameData.player2Move ? (
                  currentGameData.status === 'Finished' ? getMoveEmoji(currentGameData.player2Move) : '🔒'
                ) : '⏳'}
@@ -1225,7 +1117,7 @@ ${index < allGames.length - 1 ? '' : ''}`;
       {shouldShowRevealInterface && (
         <div className="text-center">
           <button 
-            onClick={() => setShowRevealPage(true)}
+            onClick={() => setUIState('revealing')}
             className="btn btn-success btn-large"
             style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' }}
           >
