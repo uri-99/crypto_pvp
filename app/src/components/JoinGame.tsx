@@ -246,9 +246,6 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
             </div>
           </div>
           
-          <div className="text-sm text-warning mt-4 p-3 rounded-lg" style={{background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)'}}>
-            ⚠️ By joining this game, you commit <strong>{getWagerDisplay(selectedGameData.wager)}</strong> to the match. Winner takes all!
-          </div>
         </div>
       )}
 
