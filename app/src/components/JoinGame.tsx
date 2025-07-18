@@ -18,7 +18,7 @@ interface JoinGameProps {
 const PROGRAM_ID = new web3.PublicKey(idl.address);
 
 export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: JoinGameProps) {
-  const { availableGames, availableGamesLoading } = useGetAvailableGames();
+  const { availableGames, availableGamesLoading, refreshAvailableGames } = useGetAvailableGames();
   const wallet = useWallet();
   const { connection } = useConnection();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
@@ -123,8 +123,21 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
             <h3 className="text-xl font-semibold">Available Games</h3>
           </div>
           
-          {/* Wager Filter */}
+          {/* Wager Filter and Refresh */}
           <div className="flex items-center gap-2">
+            <button 
+              onClick={refreshAvailableGames}
+              disabled={availableGamesLoading}
+              className="text-secondary hover:text-primary transition-colors"
+              title="Refresh games list"
+              style={{ background: 'none', border: 'none', padding: '12px', fontSize: '1.25rem', cursor: 'pointer' }}
+            >
+              {availableGamesLoading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-current border-t-transparent"></div>
+              ) : (
+                <>🔄</>
+              )}
+            </button>
             <Filter size={16} />
             <select 
               value={wagerFilter} 
