@@ -18,22 +18,26 @@ pub mod crypto_pvp {
     use super::*;
 
     /// Initializes the global state - can only be called once due to #[account(init)]
-    pub fn initialize_global_state(ctx: Context<InitializeGlobalState>) -> Result<()> {
+    pub fn initialize_global_state(ctx: Context<InitializeGlobalState>, fee_collector: Pubkey) -> Result<()> {
         let global_state = &mut ctx.accounts.global_state;
         
         // Initialize all fields to starting values
         global_state.game_counter = 0;
         global_state.total_games_completed = 0;
         global_state.authority = ctx.accounts.authority.key();
+        global_state.fee_collector = fee_collector;
+        global_state.fee_percentage = 1; // Default to 1%
         global_state.bump = ctx.bumps.global_state;
         
         msg!("Global state initialized by authority: {}", ctx.accounts.authority.key());
+        msg!("Fee collector set to: {}", fee_collector);
+        msg!("Fee percentage set to: {}%", global_state.fee_percentage);
         Ok(())
     }
 
     //TODO function allowing closing of players for users to reclaim rent?
 
-    // Creates a new game with player1's commit
+    // Creates a new game
     pub fn create_game(ctx: Context<CreateGame>, wager: WagerAmount) -> Result<()> {
         let global_state = &mut ctx.accounts.global_state;
         let game = &mut ctx.accounts.game;
@@ -50,31 +54,28 @@ pub mod crypto_pvp {
         game.player1 = ctx.accounts.player.key();
         game.player2 = Pubkey::default();
         game.wager = wager;
+        game.fee_per_player = wager.fee_per_player(global_state.fee_percentage); // Lock in current fee
         game.state = GameState::WaitingForPlayer; // Player1 has created, waiting for player2 to join
         game.winner_type = None;
         game.winner_address = None;
         game.bump = ctx.bumps.game;
         
-        // Transfer wager amount from player to game account
-        let wager_lamports = wager.to_lamports();
-        transfer(
-            CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.player.to_account_info(),
-                    to: game.to_account_info(),
-                },
-            ),
-            wager_lamports,
+        // Process wager with fee collection
+        process_wager(
+            &ctx.accounts.player.to_account_info(),
+            &ctx.accounts.fee_collector.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+            game,
         )?;
 
         // Update player1's wagering stats
+        let wager_lamports = wager.to_lamports();
         ctx.accounts.player1_profile.total_wagered += wager_lamports;
         // Update global stats
         global_state.game_counter += 1;
         
-        msg!("Game #{} created by player1: {}, wager: {} lamports", 
-             game.game_id, ctx.accounts.player.key(), wager.to_lamports());
+        msg!("Game #{} created by player1: {}, wager: {} lamports (fee: {})", 
+             game.game_id, ctx.accounts.player.key(), wager_lamports, game.fee_per_player);
         Ok(())
     }
 
@@ -93,26 +94,22 @@ pub mod crypto_pvp {
         
         game.player2 = ctx.accounts.player.key();
         
-        // Transfer wager amount from player2 to game account
-        let wager_lamports = game.wager.to_lamports();
-        transfer(
-            CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.player.to_account_info(),
-                    to: game.to_account_info(),
-                },
-            ),
-            wager_lamports,
+        // Process wager with fee collection
+        process_wager(
+            &ctx.accounts.player.to_account_info(),
+            &ctx.accounts.fee_collector.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+            game,
         )?;
 
         // Update player2's wagering stats
+        let wager_lamports = game.wager.to_lamports();
         ctx.accounts.player2_profile.total_wagered += wager_lamports;
         // After both players joined, advance to commit phase
         game.state = GameState::CommitPhase;
         
         //TODO change to event emition?
-        msg!("Player2 joined game #{}: {}", game.game_id, ctx.accounts.player.key());
+        msg!("Player2 joined game #{}: {} (fee: {})", game.game_id, ctx.accounts.player.key(), game.fee_per_player);
         msg!("Game advanced to commit phase");
         Ok(())
     }
@@ -177,12 +174,11 @@ pub mod crypto_pvp {
             global_state.total_games_completed += 1;
             
             // Update player profile stats
-            let wager_amount = game.wager.to_lamports();
             update_player_stats(
                 &mut ctx.accounts.player1_profile,
                 &mut ctx.accounts.player2_profile,
                 winner_type,
-                wager_amount,
+                game,
             )?;
             
             // Handle payout to winner(s)
@@ -242,12 +238,11 @@ pub mod crypto_pvp {
         global_state.total_games_completed += 1;
 
         // Update player profile stats
-        let wager_amount = game.wager.to_lamports();
         update_player_stats(
             &mut ctx.accounts.player1_profile,
             &mut ctx.accounts.player2_profile,
             winner_type,
-            wager_amount,
+            game,
         )?;
 
         // Handle payout to winner
@@ -268,6 +263,28 @@ pub mod crypto_pvp {
         let player_profile = &mut ctx.accounts.player_profile;
         player_profile.name = new_name;
         msg!("Player {} updated name to: {}", ctx.accounts.player.key(), player_profile.name);
+        Ok(())
+    }
+
+    /// Update fee collector address (only authority can call this)
+    pub fn update_fee_collector(ctx: Context<UpdateFeeCollector>, new_fee_collector: Pubkey) -> Result<()> {
+        let global_state = &mut ctx.accounts.global_state;
+        let old_collector = global_state.fee_collector;
+        global_state.fee_collector = new_fee_collector;
+        
+        msg!("Fee collector updated from {} to {} by authority: {}", 
+             old_collector, new_fee_collector, ctx.accounts.authority.key());
+        Ok(())
+    }
+
+    /// Update fee percentage (only authority can call this)
+    pub fn update_fee_percentage(ctx: Context<UpdateFeeCollector>, new_fee_percentage: u64) -> Result<()> {
+        let global_state = &mut ctx.accounts.global_state;
+        let old_percentage = global_state.fee_percentage;
+        global_state.fee_percentage = new_fee_percentage;
+        
+        msg!("Fee percentage updated from {}% to {}% by authority: {}", 
+             old_percentage, new_fee_percentage, ctx.accounts.authority.key());
         Ok(())
     }
 
@@ -305,6 +322,46 @@ fn determine_winner(move1: Move, move2: Move) -> Winner {
         (Move::Scissors, Move::Rock) | (Move::Rock, Move::Paper) | (Move::Paper, Move::Scissors) => Winner::Player2,
         _ => Winner::Tie,
     }
+}
+
+/// Helper function to process wager with fee collection
+fn process_wager<'info>(
+    player: &AccountInfo<'info>,
+    fee_collector: &AccountInfo<'info>,
+    system_program: &AccountInfo<'info>,
+    game: &Account<'info, Game>,
+) -> Result<()> {
+    let fee_per_player = game.fee_per_player;
+    let net_per_player = game.net_per_player();
+    
+    require!(fee_per_player > 0 && net_per_player > 0, GameError::InsufficientFunds);
+    
+    // Transfer fee to fee collector
+    transfer(
+        CpiContext::new(
+            system_program.clone(),
+            Transfer {
+                from: player.clone(),
+                to: fee_collector.clone(),
+            },
+        ),
+        fee_per_player,
+    )?;
+    msg!("Fee collected: {} lamports to fee collector", fee_per_player);
+    
+    // Transfer remaining wager to game account
+    transfer(
+        CpiContext::new(
+            system_program.clone(),
+            Transfer {
+                from: player.clone(),
+                to: game.to_account_info(),
+            },
+        ),
+        net_per_player,
+    )?;
+    
+    Ok(())
 }
 
 /// Helper function to commit a player's move (used by create_game and join_game)
@@ -366,8 +423,10 @@ fn update_player_stats(
     player1_profile: &mut Account<PlayerProfile>,
     player2_profile: &mut Account<PlayerProfile>,
     winner_type: Winner,
-    wager_amount: u64,
+    game: &Game,
 ) -> Result<()> {
+    let profit = game.net_per_player(); // Winner's profit = opponent's net contribution
+    
     // Update wins/losses/ties and game completion stats based on outcome
     match winner_type {
         Winner::Player1 => {
@@ -375,14 +434,14 @@ fn update_player_stats(
             player2_profile.total_games_completed += 1;
             player1_profile.wins += 1;
             player2_profile.losses += 1;
-            player1_profile.total_won += wager_amount; // wins profit
+            player1_profile.total_won += profit; // profit from opponent
         }
         Winner::Player2 => {
             player1_profile.total_games_completed += 1;
             player2_profile.total_games_completed += 1;
             player1_profile.losses += 1;
             player2_profile.wins += 1;
-            player2_profile.total_won += wager_amount; // wins profit
+            player2_profile.total_won += profit; // profit from opponent
         }
         Winner::Tie => {
             player1_profile.total_games_completed += 1;
@@ -397,7 +456,7 @@ fn update_player_stats(
             player2_profile.total_games_forfeited += 1;
             player1_profile.wins += 1;
             player2_profile.losses += 1;
-            player1_profile.total_won += wager_amount; // wins profit
+            player1_profile.total_won += profit; // profit from opponent
         }
         Winner::Player2OpponentForfeit => {
             // Player2 completed, Player1 forfeited
@@ -405,7 +464,7 @@ fn update_player_stats(
             player2_profile.total_games_completed += 1;
             player1_profile.losses += 1;
             player2_profile.wins += 1;
-            player2_profile.total_won += wager_amount; // wins profit
+            player2_profile.total_won += profit; // profit from opponent
         }
     }
     
@@ -413,15 +472,14 @@ fn update_player_stats(
 }
 
 /// Helper function to handle game payouts - transfers SOL from game account to winners
-// TODO : send % fee to contract profit collector.
 fn payout_winner(
     game: &mut Account<Game>,
     player1_info: &AccountInfo,
     player2_info: &AccountInfo,
     winner_type: Winner,
 ) -> Result<()> {
-    let wager = game.wager.to_lamports();
-    let total_pot = wager * 2; // Both players contributed
+    let total_pot = game.total_pot();
+    let net_per_player = game.net_per_player();
     
     // Safety check: ensure game account has the expected funds
     let game_balance = game.to_account_info().lamports();
@@ -443,12 +501,12 @@ fn payout_winner(
             msg!("Payout: {} lamports to winner Player2: {}", total_pot, game.player2);
         }
         Winner::Tie => {
-            // Transfer original wager to each player
+            // Transfer original net contribution to each player
             **game.to_account_info().try_borrow_mut_lamports()? -= total_pot;
-            **player1_info.try_borrow_mut_lamports()? += wager;
-            **player2_info.try_borrow_mut_lamports()? += wager;
+            **player1_info.try_borrow_mut_lamports()? += net_per_player;
+            **player2_info.try_borrow_mut_lamports()? += net_per_player;
             
-            msg!("Tie payout: {} lamports to Player1 and Player2", wager);
+            msg!("Tie payout: {} lamports to each player", net_per_player);
         }
     }
     
@@ -497,6 +555,9 @@ pub struct CreateGame<'info> {
         bump
     )]
     pub player1_profile: Account<'info, PlayerProfile>,
+    /// CHECK: Fee collector account - receives fee from games
+    #[account(mut, address = global_state.fee_collector)]
+    pub fee_collector: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -509,6 +570,12 @@ pub struct JoinGame<'info> {
         bump = game.bump
     )]
     pub game: Account<'info, Game>,
+    #[account(
+        mut,
+        seeds = [b"global_state"],
+        bump = global_state.bump
+    )]
+    pub global_state: Account<'info, GlobalState>,
     #[account(mut)] // Must be mut because it's the payer
     pub player: Signer<'info>,
     #[account(
@@ -519,6 +586,9 @@ pub struct JoinGame<'info> {
         bump
     )]
     pub player2_profile: Account<'info, PlayerProfile>,
+    /// CHECK: Fee collector account - receives fee from games
+    #[account(mut, address = global_state.fee_collector)]
+    pub fee_collector: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -567,6 +637,18 @@ pub struct UpdatePlayerName<'info> {
     )]
     pub player_profile: Account<'info, PlayerProfile>,
     pub player: Signer<'info>, 
+}
+
+#[derive(Accounts)]
+pub struct UpdateFeeCollector<'info> {
+    #[account(
+        mut,
+        seeds = [b"global_state"],
+        bump = global_state.bump,
+        has_one = authority @ GameError::Unauthorized
+    )]
+    pub global_state: Account<'info, GlobalState>,
+    pub authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
