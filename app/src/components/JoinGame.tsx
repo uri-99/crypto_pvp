@@ -62,6 +62,14 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
         gameIdBN.toArrayLike(Buffer, 'le', 8)
       ], PROGRAM_ID);
       
+      const [globalStatePda] = await web3.PublicKey.findProgramAddress([
+        Buffer.from('global_state')
+      ], PROGRAM_ID);
+      
+      // Fetch global state to get fee collector
+      const globalState = await (program.account as any).globalState.fetch(globalStatePda);
+      const feeCollector = (globalState as any).feeCollector;
+      
       const [playerProfilePda] = await web3.PublicKey.findProgramAddress([
         Buffer.from('player_profile'),
         wallet.publicKey.toBytes()
@@ -74,8 +82,10 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
         gameIdBN  // Only _game_id parameter
       ).accounts({
         game: gamePda,
+        globalState: globalStatePda,
         player: wallet.publicKey,
         player2Profile: playerProfilePda,
+        feeCollector: feeCollector,
         systemProgram: web3.SystemProgram.programId,
       }).rpc();
       
