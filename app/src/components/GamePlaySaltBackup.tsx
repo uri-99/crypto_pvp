@@ -126,7 +126,7 @@ Keep this information safe until the game is finished.`;
           </div>
         </div>
         
-        <div className="grid grid-2 gap-3 mt-6">
+        <div className="text-center mt-6">
           <button
             onClick={copyAllGameData}
             className="btn btn-primary"
@@ -134,12 +134,6 @@ Keep this information safe until the game is finished.`;
           >
             {copyFeedback === 'all' ? <Check size={16} /> : <Copy size={16} />}
             {copyFeedback === 'all' ? 'Copied All Data!' : 'Copy Complete Backup'}
-          </button>
-          <button
-            onClick={() => {}} // This was originally a modal trigger, but we removed it
-            className="btn btn-secondary"
-          >
-            📱 View All Games
           </button>
         </div>
         
