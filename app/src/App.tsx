@@ -4,13 +4,15 @@ import { CreateGame } from './components/CreateGame';
 import { JoinGame } from './components/JoinGame';
 import { GamePlay } from './components/GamePlay';
 import { GameResult } from './components/GameResult';
+import { Profile } from './components/Profile';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { Trophy } from 'lucide-react';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
-export type GameView = 'home' | 'create' | 'join' | 'play' | 'result';
+export type GameView = 'home' | 'create' | 'join' | 'play' | 'result' | 'profile';
 export type Move = 'rock' | 'paper' | 'scissors';
 export type WagerAmount = 'sol001' | 'sol01' | 'sol1';
 export type GameStatus = 'WaitingForPlayer' | 'CommitPhase' | 'RevealPhase' | 'Finished';
@@ -86,7 +88,16 @@ function AppContent() {
         <div className="py-8">
           {currentView === 'home' && (
             <>
-              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {wallet.publicKey && (
+                  <button 
+                    onClick={() => setCurrentView('profile')}
+                    className="btn btn-secondary"
+                  >
+                    <Trophy size={16} />
+                    My Profile
+                  </button>
+                )}
                 <WalletMultiButton />
               </div>
               <Home
@@ -139,6 +150,17 @@ function AppContent() {
               getWagerDisplay={getWagerDisplay}
               playerAddress={wallet.publicKey?.toString() || ''}
             />
+          )}
+          
+          {currentView === 'profile' && (
+            <>
+              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+                <WalletMultiButton />
+              </div>
+              <Profile
+                onBack={handleBackToHome}
+              />
+            </>
           )}
         </div>
       </div>
