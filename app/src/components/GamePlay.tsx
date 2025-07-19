@@ -126,20 +126,13 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
           console.log('🔄 Game state changed:', gameState, '→', newStatus);
           setGameState(newStatus);
           
-          // Handle specific state transitions
-          if (newStatus === 'RevealPhase' && gameState === 'CommitPhase') {
-            console.log('🎯 Both players committed! Moving to reveal phase...');
-            // Don't automatically hide salt backup - let user manually continue
-            if (uiState === 'saltBackup') {
-              // Stay in saltBackup until user explicitly continues
-            } else {
-              setUIState('playing'); // Default to playing state
-            }
-          }
           
           if (newStatus === 'Finished') {
             console.log('🏁 Game finished!');
-            setUIState('results');
+            // ONLY auto-advance to results if NOT on salt backup page
+            if (uiState !== 'saltBackup') {
+              setUIState('results');
+            }
           }
         }
 
@@ -148,9 +141,18 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
           const myRevealMove = isPlayer1 ? updatedGame.player1Move : updatedGame.player2Move;
           const opponentRevealMove = isPlayer1 ? updatedGame.player2Move : updatedGame.player1Move;
           
-          if (myRevealMove && !opponentRevealMove) {
+          if (myRevealMove && opponentRevealMove) {
+            console.log('🎉 Both players revealed! Moving to results...');
+            // ONLY auto-advance if NOT on salt backup page
+            if (uiState !== 'saltBackup') {
+              setUIState('results');
+            }
+          } else if (myRevealMove && !opponentRevealMove) {
             console.log('✅ My move revealed, waiting for opponent...');
-            setUIState('waitingForOpponent');
+            // ONLY auto-advance if NOT on salt backup page
+            if (uiState !== 'saltBackup') {
+              setUIState('waitingForOpponent');
+            }
           }
         }
       } catch (error) {
@@ -168,10 +170,6 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
   }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress]);
 
   // Handlers for child components
-  const handleSaltBackupContinue = () => {
-    setUIState('playing');
-  };
-
   const handleSaltBackupGoToReveal = () => {
     setUIState('revealing');
   };
@@ -192,6 +190,7 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
 
   const handleRevealSuccess = (move: 'rock' | 'paper' | 'scissors') => {
     setMySelectedMove(move);
+    setUIState('waitingForOpponent');
     // The polling will handle checking if both players revealed and transitioning to results
   };
   
@@ -277,7 +276,6 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
         mySelectedMove={mySelectedMove}
         salt={salt}
         onBack={onBack}
-        onContinue={handleSaltBackupContinue}
         onGoToReveal={handleSaltBackupGoToReveal}
         getWagerDisplay={getWagerDisplay}
       />

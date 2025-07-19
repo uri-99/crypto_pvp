@@ -9,7 +9,6 @@ interface GamePlaySaltBackupProps {
   mySelectedMove: 'rock' | 'paper' | 'scissors';
   salt: string;
   onBack: () => void;
-  onContinue: () => void;
   onGoToReveal: () => void;
   getWagerDisplay: (wager: WagerAmount) => string;
 }
@@ -21,7 +20,6 @@ export function GamePlaySaltBackup({
   mySelectedMove,
   salt,
   onBack,
-  onContinue,
   onGoToReveal,
   getWagerDisplay
 }: GamePlaySaltBackupProps) {
@@ -138,7 +136,7 @@ Keep this information safe until the game is finished.`;
         </div>
         
         <p className="text-sm text-center mt-4" style={{ color: 'rgba(255, 193, 7, 0.8)' }}>
-          💾 Data is saved locally on this device. Use the backup options above for safety!
+          💾 Data is saved locally on this device. Use the backup options above for extra safety!
           {gameState === 'RevealPhase' && (
             <><br/><br/>
             🔄 <strong>Game is ready for reveal phase!</strong> Take your time to backup your data, then use the buttons below to continue.</>
@@ -147,27 +145,25 @@ Keep this information safe until the game is finished.`;
       </div>
 
       <div className="text-center">
-        <button 
-          onClick={onContinue}
-          className="btn btn-primary"
-        >
-          Continue to Game
-        </button>
-        
-        {gameState === 'RevealPhase' && (
-          <div className="mt-4">
-            <div className="mb-3 p-3 rounded-lg" style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+        {gameState === 'RevealPhase' ? (
+          <div>
+            <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
               <p className="text-sm font-medium" style={{ color: '#6366f1' }}>
                 🎯 Both players have committed! Game is ready for reveal phase.
               </p>
             </div>
             <button 
               onClick={onGoToReveal}
-              className="btn btn-success"
-              style={{ marginLeft: '0.5rem' }}
+              className="btn btn-success btn-large"
             >
               🎯 Go to Reveal Phase
             </button>
+          </div>
+        ) : (
+          <div className="p-3 rounded-lg" style={{ background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)' }}>
+            <p className="text-sm font-medium" style={{ color: '#f97316' }}>
+              ⏳ Waiting for opponent to commit their move...
+            </p>
           </div>
         )}
       </div>
