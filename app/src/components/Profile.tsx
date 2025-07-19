@@ -329,20 +329,25 @@ export function Profile({ onBack }: ProfileProps) {
               ) : (
                 <div className="group">
                   <h2 
-                    className="text-2xl font-bold cursor-pointer inline-flex items-center gap-2 hover:opacity-80 transition-opacity" 
+                    className="text-2xl font-bold cursor-pointer inline-flex items-center hover:opacity-80 transition-opacity" 
                     style={{color: 'rgba(255,255,255,0.88)'}}
                     onClick={() => setIsEditingName(true)}
                     title="Click to edit name"
                   >
-                    {profile.name}
+                    <span style={{color: 'rgba(255,255,255,0.70)', fontSize: '1rem', fontWeight: 'normal', marginRight: '12px'}}>
+                      Username: 
+                    </span>
+                    <span style={{marginRight: '12px'}}>
+                      {profile.name}
+                    </span>
                     <Edit3 size={16} className="opacity-0 group-hover:opacity-50 transition-opacity" />
                   </h2>
                 </div>
               )}
             </div>
             <div className="text-sm" style={{color: 'rgba(255,255,255,0.70)'}}>
-              <div>Address: {profile.player.slice(0, 8)}...{profile.player.slice(-8)}</div>
-              <div className="flex items-center gap-1 mt-1">
+              <div style={{marginBottom: '8px'}}>Address: {profile.player.slice(0, 8)}...{profile.player.slice(-8)}</div>
+              <div className="flex items-center gap-1" style={{marginBottom: '8px'}}>
                 <Calendar size={14} />
                 Joined: {formatDate(profile.createdAt)}
               </div>
@@ -438,22 +443,24 @@ export function Profile({ onBack }: ProfileProps) {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span style={{color: 'rgba(255,255,255,0.70)'}}>Total Lost</span>
-                <span className="font-bold text-red-400">
-                  {formatSOL(profile.totalLost)} SOL
-                </span>
-              </div>
-              <div className="flex justify-between">
                 <span style={{color: 'rgba(255,255,255,0.70)'}}>Net Profit</span>
-                <span className={`font-bold ${profile.totalWon - profile.totalLost >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {profile.totalWon - profile.totalLost >= 0 ? '+' : ''}{formatSOL(profile.totalWon - profile.totalLost)} SOL
+                <span className="font-bold" style={{
+                  color: profile.totalWon - profile.totalLost > 0 ? '#10b981' : 
+                         profile.totalWon - profile.totalLost < 0 ? '#ef4444' : 
+                         'rgba(255,255,255,0.50)'
+                }}>
+                  {profile.totalWon - profile.totalLost > 0 ? '+' : ''}{formatSOL(profile.totalWon - profile.totalLost)} SOL
                 </span>
               </div>
-              {profile.totalGamesPlayed > 0 && (
+              {profile.totalWagered > 0 && (
                 <div className="flex justify-between">
-                  <span style={{color: 'rgba(255,255,255,0.70)'}}>Avg Wager</span>
-                  <span className="font-bold">
-                    {formatSOL(profile.totalWagered / profile.totalGamesPlayed)} SOL
+                  <span style={{color: 'rgba(255,255,255,0.70)'}}>ROI</span>
+                  <span className="font-bold" style={{
+                    color: profile.totalWon - profile.totalLost > 0 ? '#10b981' : 
+                           profile.totalWon - profile.totalLost < 0 ? '#ef4444' : 
+                           'rgba(255,255,255,0.50)'
+                  }}>
+                    {profile.totalWagered > 0 ? (((profile.totalWon - profile.totalLost) / profile.totalWagered) * 100).toFixed(1) : '0'}%
                   </span>
                 </div>
               )}
