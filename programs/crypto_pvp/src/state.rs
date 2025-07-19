@@ -26,6 +26,7 @@ pub struct PlayerProfile {
     pub ties: u32,
     pub total_wagered: u64,         // Lifetime betting volume
     pub total_won: u64,             // Lifetime winnings
+    pub total_lost: u64,            // Lifetime losses
     pub current_streak: i32,        //TODO // Win streak (+ win, - loss)
     pub best_streak: u32,           //TODO // Best win streak ever
     pub created_at: i64,            // Account creation timestamp
