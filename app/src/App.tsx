@@ -49,21 +49,22 @@ function AppContent() {
     setCurrentView('play');
   };
 
-  const handleJoinGame = async (gameId: string, _move: Move) => {
+  const handleJoinGame = async (gameId: string, wager: WagerAmount) => {
     // Blockchain interaction is now handled in JoinGame.tsx
     // This function just handles UI state after successful join
     
-    console.log('App.tsx handleJoinGame - updating UI state for game:', gameId);
+    console.log('App.tsx handleJoinGame - updating UI state for game:', gameId, 'with wager:', wager);
     
-    // Update UI state - go to play view
+    // Update UI state with the wager passed from JoinGame component
     setCurrentGame({
       id: gameId,
       player1: 'Player 1', // Will be updated when we fetch player names
       player2: wallet.publicKey?.toString() || 'Player 2',
-      wager: 'sol01', // Will be fetched from blockchain
+      wager: wager, // Use the actual wager passed from JoinGame
       status: 'CommitPhase', // After joining, game moves to commit phase
       createdAt: new Date(),
     });
+    
     setCurrentView('play');
   };
 

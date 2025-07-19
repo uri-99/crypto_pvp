@@ -3,6 +3,7 @@ import { ArrowLeft, Edit3, Check, X, Trophy, TrendingUp, Calendar } from 'lucide
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, web3 } from '@coral-xyz/anchor';
 import idl from '../idl/crypto_pvp.json';
+import { fetchPlayerName } from '../utils/fetchGames';
 
 interface ProfileProps {
   onBack: () => void;
@@ -19,6 +20,7 @@ interface PlayerProfile {
   ties: number;
   totalWagered: number;
   totalWon: number;
+  totalLost: number;
   createdAt: number;
 }
 
@@ -74,6 +76,7 @@ export function Profile({ onBack }: ProfileProps) {
           ties: profileData.ties,
           totalWagered: parseInt(profileData.totalWagered.toString()),
           totalWon: parseInt(profileData.totalWon.toString()),
+          totalLost: parseInt(profileData.totalLost?.toString() || '0'),
           createdAt: parseInt(profileData.createdAt.toString()),
         });
 
@@ -147,8 +150,8 @@ export function Profile({ onBack }: ProfileProps) {
             return 'unknown';
           };
 
-          // Get opponent name (simplified for now)
-          const opponentName = opponent.slice(0, 8) + '...';
+          // Get opponent name from their profile
+          const opponentName = await fetchPlayerName(connection, { publicKey, signTransaction } as any, opponent);
 
           history.push({
             gameId: parseInt(gameData.gameId.toString()),
@@ -429,9 +432,21 @@ export function Profile({ onBack }: ProfileProps) {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span style={{color: 'rgba(255,255,255,0.70)'}}>Gross Winnings</span>
+                <span style={{color: 'rgba(255,255,255,0.70)'}}>Total Won</span>
                 <span className="font-bold text-green-400">
                   {formatSOL(profile.totalWon)} SOL
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{color: 'rgba(255,255,255,0.70)'}}>Total Lost</span>
+                <span className="font-bold text-red-400">
+                  {formatSOL(profile.totalLost)} SOL
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{color: 'rgba(255,255,255,0.70)'}}>Net Profit</span>
+                <span className={`font-bold ${profile.totalWon - profile.totalLost >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {profile.totalWon - profile.totalLost >= 0 ? '+' : ''}{formatSOL(profile.totalWon - profile.totalLost)} SOL
                 </span>
               </div>
               {profile.totalGamesPlayed > 0 && (

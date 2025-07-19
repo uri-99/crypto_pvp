@@ -70,8 +70,6 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
   
   // Enhanced polling for ALL game phases
   useEffect(() => {
-    if (gameState === 'Finished') return;
-    
     const pollGameState = async () => {
       try {
         if (!publicKey || !connection) return;
@@ -111,13 +109,14 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
           winner: gameData.winnerType ? Object.keys(gameData.winnerType)[0] : undefined
         };
 
-        console.log('🔄 Updated game data from blockchain:', {
-          originalPlayer1: currentGameData.player1,
-          originalPlayer2: currentGameData.player2,
-          blockchainPlayer1: gameData.player1.toString(),
-          blockchainPlayer2: gameData.player2.toString(),
-          updatedPlayer1: updatedGame.player1,
-          updatedPlayer2: updatedGame.player2
+        console.log('🔄 Polling game state:', {
+          gameId: currentGameData.id,
+          currentState: gameState,
+          newState: newStatus,
+          currentUIState: uiState,
+          player1Move: updatedGame.player1Move,
+          player2Move: updatedGame.player2Move,
+          winner: updatedGame.winner
         });
 
         setCurrentGameData(updatedGame);
@@ -126,13 +125,9 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
           console.log('🔄 Game state changed:', gameState, '→', newStatus);
           setGameState(newStatus);
           
-          
           if (newStatus === 'Finished') {
-            console.log('🏁 Game finished!');
-            // ONLY auto-advance to results if NOT on salt backup page
-            if (uiState !== 'saltBackup') {
-              setUIState('results');
-            }
+            console.log('🏁 Game finished! Transitioning to results...');
+            setUIState('results');
           }
         }
 
@@ -143,16 +138,10 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
           
           if (myRevealMove && opponentRevealMove) {
             console.log('🎉 Both players revealed! Moving to results...');
-            // ONLY auto-advance if NOT on salt backup page
-            if (uiState !== 'saltBackup') {
-              setUIState('results');
-            }
+            setUIState('results');
           } else if (myRevealMove && !opponentRevealMove) {
             console.log('✅ My move revealed, waiting for opponent...');
-            // ONLY auto-advance if NOT on salt backup page
-            if (uiState !== 'saltBackup') {
-              setUIState('waitingForOpponent');
-            }
+            setUIState('waitingForOpponent');
           }
         }
       } catch (error) {
@@ -160,14 +149,14 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
       }
     };
     
-    // Poll every 3 seconds for any non-finished game
+    // Poll every 3 seconds
     const interval = setInterval(pollGameState, 3000);
     
     // Also poll immediately
     pollGameState();
     
     return () => clearInterval(interval);
-  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress]);
+  }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress, uiState, isPlayer1]);
 
   // Handlers for child components
   const handleSaltBackupGoToReveal = () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { WagerAmount, Move } from '../App';
+import { WagerAmount } from '../App';
 import { ArrowLeft, Users, Clock, Filter, Plus } from 'lucide-react';
 import { useGetAvailableGames } from '../utils/gameDataHooks';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -9,7 +9,7 @@ import idl from '../idl/crypto_pvp.json';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 interface JoinGameProps {
-  onJoinGame: (_gameId: string, _move: Move) => void;
+  onJoinGame: (_gameId: string, _wager: WagerAmount) => void;
   onBack: () => void;
   onCreateGame: () => void;
   getWagerDisplay: (_wager: WagerAmount) => string;
@@ -92,7 +92,11 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
       console.log('✅ Successfully joined game:', selectedGame);
       
       // Call parent handler for UI state (no move since we don't commit during join)
-              await onJoinGame(selectedGame, 'rock' as Move);
+      const selectedGameData = availableGamesToShow.find(g => g.id === selectedGame);
+      if (!selectedGameData) {
+        throw new Error('Selected game data not found');
+      }
+      await onJoinGame(selectedGame, selectedGameData.wager);
     } catch (e) {
       console.error('Error details:', e);
       alert('Error joining game: ' + (e instanceof Error ? e.message : e));

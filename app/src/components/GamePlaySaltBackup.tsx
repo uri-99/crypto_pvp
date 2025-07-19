@@ -82,14 +82,6 @@ Keep this information safe until the game is finished.`;
         <div style={{ fontSize: '5rem', marginBottom: '1.5rem' }}>✅</div>
         <h2 className="text-3xl font-bold mb-4">Move Committed!</h2>
         <p className="text-xl text-secondary mb-6">You chose: {getMoveEmoji(mySelectedMove)} {mySelectedMove}</p>
-        
-        {gameState === 'RevealPhase' && (
-          <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
-            <p className="text-sm font-medium" style={{ color: '#22c55e' }}>
-              ✨ Both players committed! Game is now in reveal phase.
-            </p>
-          </div>
-        )}
       </div>
 
       <div className="card mb-6" style={{ background: 'rgba(255, 193, 7, 0.1)', border: '2px solid rgba(255, 193, 7, 0.3)' }}>
