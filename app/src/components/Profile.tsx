@@ -4,6 +4,10 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider, web3 } from '@coral-xyz/anchor';
 import idl from '../idl/crypto_pvp.json';
 import { fetchPlayerName } from '../utils/fetchGames';
+import { fetchMyActiveGames } from '../utils/fetchGames';
+import Tippy from '@tippyjs/react';
+import { followCursor } from 'tippy.js';
+import 'tippy.js/dist/tippy.css';
 
 interface ProfileProps {
   onBack: () => void;
@@ -36,7 +40,8 @@ interface GameHistoryEntry {
 }
 
 export function Profile({ onBack }: ProfileProps) {
-  const { publicKey, signTransaction } = useWallet();
+  const wallet = useWallet();
+  const { publicKey } = wallet;
   const { connection } = useConnection();
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +50,7 @@ export function Profile({ onBack }: ProfileProps) {
   const [updatingName, setUpdatingName] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [openWagers, setOpenWagers] = useState(0);
 
   // Fetch player profile data
   useEffect(() => {
@@ -53,7 +59,7 @@ export function Profile({ onBack }: ProfileProps) {
 
       try {
         setLoading(true);
-        const provider = new AnchorProvider(connection, { publicKey, signTransaction } as any, {});
+        const provider = new AnchorProvider(connection, { publicKey, signTransaction: wallet.signTransaction } as any, {});
         const program = new Program(idl as any, provider);
 
         // Get player profile PDA
@@ -91,7 +97,7 @@ export function Profile({ onBack }: ProfileProps) {
     };
 
     fetchProfile();
-  }, [publicKey, connection, signTransaction]);
+  }, [publicKey, connection, wallet]);
 
   // Fetch game history
   useEffect(() => {
@@ -100,7 +106,7 @@ export function Profile({ onBack }: ProfileProps) {
 
       try {
         setHistoryLoading(true);
-        const provider = new AnchorProvider(connection, { publicKey, signTransaction } as any, {});
+        const provider = new AnchorProvider(connection, { publicKey, signTransaction: wallet.signTransaction } as any, {});
         const program = new Program(idl as any, provider);
 
         // Fetch all finished game accounts
@@ -151,7 +157,7 @@ export function Profile({ onBack }: ProfileProps) {
           };
 
           // Get opponent name from their profile
-          const opponentName = await fetchPlayerName(connection, { publicKey, signTransaction } as any, opponent);
+          const opponentName = await fetchPlayerName(connection, { publicKey, signTransaction: wallet.signTransaction } as any, opponent);
 
           history.push({
             gameId: parseInt(gameData.gameId.toString()),
@@ -180,14 +186,31 @@ export function Profile({ onBack }: ProfileProps) {
     };
 
     fetchGameHistory();
-  }, [publicKey, connection, signTransaction, profile]);
+  }, [publicKey, connection, wallet, profile]);
+
+  // Fetch open wagers
+  useEffect(() => {
+    const fetchOpen = async () => {
+      if (!publicKey || !connection) return;
+      const games = await fetchMyActiveGames(connection, wallet, publicKey.toString());
+      let sum = 0;
+      for (const game of games) {
+        // Convert wager enum to lamports
+        if (game.wager === 'sol1') sum += 1_000_000_000;
+        else if (game.wager === 'sol01') sum += 100_000_000;
+        else if (game.wager === 'sol001') sum += 10_000_000;
+      }
+      setOpenWagers(sum);
+    };
+    fetchOpen();
+  }, [publicKey, connection, wallet]);
 
   const handleUpdateName = async () => {
-    if (!publicKey || !connection || !signTransaction || !newName.trim()) return;
+    if (!publicKey || !connection || !wallet.signTransaction || !newName.trim()) return;
 
     try {
       setUpdatingName(true);
-      const provider = new AnchorProvider(connection, { publicKey, signTransaction } as any, {});
+      const provider = new AnchorProvider(connection, { publicKey, signTransaction: wallet.signTransaction } as any, {});
       const program = new Program(idl as any, provider);
 
       // Get player profile PDA
@@ -368,30 +391,31 @@ export function Profile({ onBack }: ProfileProps) {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span style={{color: 'rgba(255,255,255,0.70)'}}>Win Rate</span>
-              <span className="text-lg font-bold" style={{color: '#28a745'}}>
+              <span className="text-lg font-bold" style={{color: calculateWinRate() > 50 ? '#28a745' : calculateWinRate() >= 30 ? '#ffc107' : '#dc3545'}}>
                 {calculateWinRate().toFixed(1)}%
               </span>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 py-3 px-4 rounded-lg" 
-                 style={{background: 'rgba(255,255,255,0.05)'}}>
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{color: '#28a745'}}>
-                  {profile.wins}
+            <div className="flex justify-center w-full">
+              <div className="flex flex-row justify-between gap-8 py-3 px-4 rounded-lg mx-auto" style={{width: 420}}>
+                <div className="flex flex-col items-center flex-1">
+                  <div className="text-2xl font-bold text-center" style={{color: '#dc3545'}}>
+                    {profile.losses}
+                  </div>
+                  <div className="text-sm text-center" style={{color: 'rgba(255,255,255,0.70)'}}>Losses</div>
                 </div>
-                <div className="text-sm" style={{color: 'rgba(255,255,255,0.70)'}}>Wins</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{color: '#dc3545'}}>
-                  {profile.losses}
+                <div className="flex flex-col items-center flex-1">
+                  <div className="text-2xl font-bold text-center" style={{color: '#ffc107'}}>
+                    {profile.ties}
+                  </div>
+                  <div className="text-sm text-center" style={{color: 'rgba(255,255,255,0.70)'}}>Ties</div>
                 </div>
-                <div className="text-sm" style={{color: 'rgba(255,255,255,0.70)'}}>Losses</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold" style={{color: '#ffc107'}}>
-                  {profile.ties}
+                <div className="flex flex-col items-center flex-1">
+                  <div className="text-2xl font-bold text-center" style={{color: '#28a745'}}>
+                    {profile.wins}
+                  </div>
+                  <div className="text-sm text-center" style={{color: 'rgba(255,255,255,0.70)'}}>Wins</div>
                 </div>
-                <div className="text-sm" style={{color: 'rgba(255,255,255,0.70)'}}>Ties</div>
               </div>
             </div>
 
@@ -443,6 +467,12 @@ export function Profile({ onBack }: ProfileProps) {
                 </span>
               </div>
               <div className="flex justify-between">
+                <span style={{color: 'rgba(255,255,255,0.70)'}}>Total Lost</span>
+                <span className="font-bold text-red-400">
+                  {formatSOL(profile.totalLost)} SOL
+                </span>
+              </div>
+              <div className="flex justify-between">
                 <span style={{color: 'rgba(255,255,255,0.70)'}}>Net Profit</span>
                 <span className="font-bold" style={{
                   color: profile.totalWon - profile.totalLost > 0 ? '#10b981' : 
@@ -452,18 +482,43 @@ export function Profile({ onBack }: ProfileProps) {
                   {profile.totalWon - profile.totalLost > 0 ? '+' : ''}{formatSOL(profile.totalWon - profile.totalLost)} SOL
                 </span>
               </div>
-              {profile.totalWagered > 0 && (
-                <div className="flex justify-between">
-                  <span style={{color: 'rgba(255,255,255,0.70)'}}>ROI</span>
-                  <span className="font-bold" style={{
-                    color: profile.totalWon - profile.totalLost > 0 ? '#10b981' : 
-                           profile.totalWon - profile.totalLost < 0 ? '#ef4444' : 
-                           'rgba(255,255,255,0.50)'
-                  }}>
-                    {profile.totalWagered > 0 ? (((profile.totalWon - profile.totalLost) / profile.totalWagered) * 100).toFixed(1) : '0'}%
-                  </span>
+            </div>
+
+            {/* Horizontal bar for wager breakdown - now with open wagers (gold) to the right and Tippy tooltips */}
+            {profile.totalWagered > 0 ? (() => {
+              const win = profile.totalWon;
+              const loss = profile.totalLost;
+              const tie = gameHistory.filter(g => g.result === 'tied').reduce((sum, g) => sum + g.wager, 0);
+              const open = openWagers;
+              const total = profile.totalWagered;
+              const winPct = Math.max(0, (win / total) * 100);
+              const tiePct = Math.max(0, (tie / total) * 100);
+              const lossPct = Math.max(0, (loss / total) * 100);
+              const openPct = Math.max(0, (open / total) * 100);
+              const minPct = 5;
+              const winStyle = { width: win > 0 ? `max(${winPct}%, ${minPct}%)` : '0%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 600, fontSize: 14, transition: 'width 0.3s', borderTopRightRadius: open > 0 ? 0 : 8, borderBottomRightRadius: open > 0 ? 0 : 8 };
+              const tieStyle = { width: tie > 0 ? `max(${tiePct}%, ${minPct}%)` : '0%', background: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 600, fontSize: 14, transition: 'width 0.3s' };
+              const lossStyle = { width: loss > 0 ? `max(${lossPct}%, ${minPct}%)` : '0%', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 600, fontSize: 14, transition: 'width 0.3s', borderTopLeftRadius: 8, borderBottomLeftRadius: 8 };
+              const openStyle = { width: open > 0 ? `max(${openPct}%, ${minPct}%)` : '0%', background: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333', fontWeight: 600, fontSize: 14, transition: 'width 0.3s', borderTopRightRadius: 8, borderBottomRightRadius: 8 };
+              return (
+                <div className="w-full flex items-center mt-4 financial-bar" style={{ height: '2.2em', borderRadius: 8, overflow: 'visible', background: 'rgba(255,255,255,0.07)', border: '1px solid #333', margin: '12px 0' }}>
+                  <div style={{display: 'flex', width: '100%', height: '100%', gap: 0, padding: '0.2em 0.4em'}}>
+                    <Tippy content={`Lost: ${formatSOL(loss)} SOL`} placement="top" followCursor={true} plugins={[followCursor]} popperOptions={{modifiers:[{name:'offset',options:{offset:[0,16]}}]}}><div style={{...lossStyle}} /></Tippy>
+                    <Tippy content={`Tied: ${formatSOL(tie)} SOL`} placement="top" followCursor={true} plugins={[followCursor]} popperOptions={{modifiers:[{name:'offset',options:{offset:[0,16]}}]}}><div style={{...tieStyle}} /></Tippy>
+                    <Tippy content={`Won: ${formatSOL(win)} SOL`} placement="top" followCursor={true} plugins={[followCursor]} popperOptions={{modifiers:[{name:'offset',options:{offset:[0,16]}}]}}><div style={{...winStyle}} /></Tippy>
+                    <Tippy content={`Open: ${formatSOL(open)} SOL`} placement="top" followCursor={true} plugins={[followCursor]} popperOptions={{modifiers:[{name:'offset',options:{offset:[0,16]}}]}}><div style={{...openStyle}} /></Tippy>
+                  </div>
                 </div>
-              )}
+              );
+            })() :
+              <div className="w-full flex items-center mt-4" style={{ height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.04)', color: '#aaa', justifyContent: 'center', fontWeight: 500, fontSize: 14 }}>
+                No data yet
+              </div>
+            }
+            {/* Open Wagers Stat */}
+            <div className="flex justify-between px-4">
+              <span style={{color: 'rgba(255,255,255,0.70)'}}>Open Wagers</span>
+              <span className="font-bold text-gray-300">{formatSOL(openWagers)} SOL</span>
             </div>
 
             {profile.totalGamesCompleted === 0 && (
@@ -489,8 +544,8 @@ export function Profile({ onBack }: ProfileProps) {
         ) : gameHistory.length > 0 ? (
           <div className="space-y-3">
             {gameHistory.map((game) => (
-              <div key={game.gameId} className="flex items-center justify-between p-3 rounded-lg" 
-                   style={{background: 'rgba(255,255,255,0.05)'}}>
+              <div key={game.gameId} className="flex items-center justify-between rounded-lg" 
+                   style={{background: 'rgba(255,255,255,0.05)', padding: '6px 16px', margin: '6px 0'}}>
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${
                     game.result === 'won' ? 'bg-green-400' : 
@@ -518,7 +573,7 @@ export function Profile({ onBack }: ProfileProps) {
                     game.result === 'won' ? 'text-green-400' : 
                     game.result === 'lost' ? 'text-red-400' : 'text-gray-400'
                   }`}>
-                    {game.result === 'won' ? '+' : game.result === 'lost' ? '-' : '±'}{formatSOL(game.wager)} SOL
+                    {game.result === 'won' ? '+' : game.result === 'lost' ? '-' : '='}{formatSOL(game.wager)} SOL
                   </div>
                   <div className="text-xs" style={{color: 'rgba(255,255,255,0.50)'}}>
                     Game #{game.gameId}

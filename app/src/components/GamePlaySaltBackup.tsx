@@ -77,45 +77,33 @@ Keep this information safe until the game is finished.`;
           <p className="text-secondary">Wager: {getWagerDisplay(currentGameData.wager)}</p>
         </div>
       </div>
-
       <div className="text-center mb-8">
         <div style={{ fontSize: '5rem', marginBottom: '1.5rem' }}>✅</div>
         <h2 className="text-3xl font-bold mb-4">Move Committed!</h2>
         <p className="text-xl text-secondary mb-6">You chose: {getMoveEmoji(mySelectedMove)} {mySelectedMove}</p>
       </div>
 
+      {/* Backup info card always below header/button */}
       <div className="card mb-6" style={{ background: 'rgba(255, 193, 7, 0.1)', border: '2px solid rgba(255, 193, 7, 0.3)' }}>
         <h3 className="text-xl font-bold mb-4 text-center" style={{ color: '#ffc107' }}>⚠️ Important: Save Your Information!</h3>
-        
         <div className="space-y-4">
           <div className="p-3 rounded-lg" style={{ background: 'rgba(0,0,0,0.2)' }}>
             <div className="flex justify-between items-center">
               <div>
                 <div className="text-sm text-secondary">Your Move:</div>
-                <div className="font-mono font-bold">{mySelectedMove}</div>
+                <div className="font-mono font-bold">{getMoveEmoji(mySelectedMove)} {mySelectedMove}</div>
               </div>
-              <div className="text-2xl">{getMoveEmoji(mySelectedMove)}</div>
             </div>
           </div>
-          
           <div className="p-3 rounded-lg" style={{ background: 'rgba(0,0,0,0.2)' }}>
             <div className="flex justify-between items-center">
               <div className="flex-1">
                 <div className="text-sm text-secondary">Your Salt (keep this safe!):</div>
                 <div className="font-mono text-sm break-all">{salt}</div>
               </div>
-              <button
-                onClick={() => copyToClipboard(salt)}
-                className="btn btn-secondary ml-2"
-                style={{ minWidth: '80px' }}
-              >
-                {copyFeedback === 'salt' ? <Check size={16} /> : <Copy size={16} />}
-                {copyFeedback === 'salt' ? 'Copied!' : 'Copy'}
-              </button>
             </div>
           </div>
         </div>
-        
         <div className="text-center mt-6">
           <button
             onClick={copyAllGameData}
@@ -126,32 +114,19 @@ Keep this information safe until the game is finished.`;
             {copyFeedback === 'all' ? 'Copied All Data!' : 'Copy Complete Backup'}
           </button>
         </div>
-        
         <p className="text-sm text-center mt-4" style={{ color: 'rgba(255, 193, 7, 0.8)' }}>
           💾 Data is saved locally on this device. Use the backup options above for extra safety!
           {gameState === 'RevealPhase' && (
             <><br/><br/>
-            🔄 <strong>Game is ready for reveal phase!</strong> Take your time to backup your data, then use the buttons below to continue.</>
+            {}
+            </>
           )}
         </p>
       </div>
 
+      {/* Only show waiting message in non-RevealPhase */}
       <div className="text-center">
-        {gameState === 'RevealPhase' ? (
-          <div>
-            <div className="mb-4 p-3 rounded-lg" style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-              <p className="text-sm font-medium" style={{ color: '#6366f1' }}>
-                🎯 Both players have committed! Game is ready for reveal phase.
-              </p>
-            </div>
-            <button 
-              onClick={onGoToReveal}
-              className="btn btn-success btn-large"
-            >
-              🎯 Go to Reveal Phase
-            </button>
-          </div>
-        ) : (
+        {gameState === 'RevealPhase' ? null : (
           <div className="p-3 rounded-lg" style={{ background: 'rgba(249, 115, 22, 0.1)', border: '1px solid rgba(249, 115, 22, 0.3)' }}>
             <p className="text-sm font-medium" style={{ color: '#f97316' }}>
               ⏳ Waiting for opponent to commit their move...

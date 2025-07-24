@@ -189,6 +189,22 @@ export function GamePlayReveal({
     setIsRevealing(false);
   };
 
+  // Fallback: if mySelectedMove or salt is missing, try to read from localStorage
+  let displayMove = mySelectedMove;
+  let displaySalt = salt;
+  if (!displayMove) {
+    const storedMove = localStorage.getItem(`game_${currentGameData.id}_move`);
+    if (storedMove === 'rock' || storedMove === 'paper' || storedMove === 'scissors') {
+      displayMove = storedMove;
+    }
+  }
+  if (!displaySalt) {
+    const storedSalt = localStorage.getItem(`game_${currentGameData.id}_salt`);
+    if (storedSalt) {
+      displaySalt = storedSalt;
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
@@ -201,6 +217,7 @@ export function GamePlayReveal({
         </div>
       </div>
 
+      {/* Main reveal card */}
       <div className="flex justify-center">
         <div style={{
           background: 'var(--surface)',
@@ -254,18 +271,18 @@ export function GamePlayReveal({
         </div>
       </div>
 
-      {/* Manual Input Modal */}
+      {/* Manual Input Form (positioned above the info box) */}
       {manualInput.isVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">Manual Reveal</h3>
+        <div className="mb-4" style={{ maxWidth: 420, margin: '0 auto' }}>
+          <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
+            <h3 className="text-lg font-bold mb-3">Manual Reveal</h3>
             <p className="text-sm text-secondary mb-4">
               Enter your move and salt from your backup to reveal manually.
             </p>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-2">Your Move</label>
+                <label className="block text-sm font-medium mb-1">Your Move</label>
                 <select
                   value={manualInput.move}
                   onChange={(e) => onSetManualInput({ ...manualInput, move: e.target.value as 'rock' | 'paper' | 'scissors' })}
@@ -278,7 +295,7 @@ export function GamePlayReveal({
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Salt (hex string)</label>
+                <label className="block text-sm font-medium mb-1">Salt (hex string)</label>
                 <input
                   type="text"
                   value={manualInput.salt}
@@ -301,7 +318,7 @@ export function GamePlayReveal({
                     if (storedMove) newInput.move = storedMove as 'rock' | 'paper' | 'scissors';
                     if (storedSalt) newInput.salt = storedSalt;
                     onSetManualInput(newInput);
-                    console.log('🔄 Auto-filled from storage:', { storedMove, storedSalt });
+                    console.log('🔄 Auto-fill from storage:', { storedMove, storedSalt });
                   }}
                   className="btn btn-secondary text-sm"
                 >
@@ -310,7 +327,7 @@ export function GamePlayReveal({
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-4">
               <button
                 onClick={handleManualReveal}
                 disabled={isRevealing || !manualInput.salt.trim() || manualInput.salt.length !== 64}
@@ -339,6 +356,26 @@ export function GamePlayReveal({
           </div>
         </div>
       )}
+
+      {/* Minimal info box for move and salt (now below the reveal card) */}
+      <div className="mb-6" style={{ maxWidth: 420, margin: '0 auto' }}>
+        <div style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid #6366f1', borderRadius: 8, padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div>
+            <div className="text-xs text-secondary">Your Move</div>
+            <div className="font-mono font-bold text-lg flex items-center gap-2">
+              {displayMove ? displayMove : '—'}
+              <span style={{ fontSize: '1.5rem' }}>{displayMove ? (displayMove === 'rock' ? '🪨' : displayMove === 'paper' ? '📄' : displayMove === 'scissors' ? '✂️' : '❓') : ''}</span>
+            </div>
+          </div>
+          <div style={{ flex: 1 }} />
+          <div>
+            <div className="text-xs text-secondary">Your Salt</div>
+            <div className="font-mono" style={{ fontSize: '0.75rem', maxWidth: 180, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>{displaySalt || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Remove the old full-screen modal */}
     </div>
   );
 } 

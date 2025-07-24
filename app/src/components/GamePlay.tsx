@@ -17,9 +17,11 @@ interface GamePlayProps {
   onBack: () => void;
   getWagerDisplay: (_wager: WagerAmount) => string;
   playerAddress: string;
+  rejoinToReveal?: boolean;
+  onClearRejoinToReveal?: () => void;
 }
 
-export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GamePlayProps) {
+export function GamePlay({ game, onBack, getWagerDisplay, playerAddress, rejoinToReveal, onClearRejoinToReveal }: GamePlayProps) {
   // Essential game state
   const [gameState, setGameState] = useState(game.status);
   const [currentGameData, setCurrentGameData] = useState(game);
@@ -29,7 +31,9 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
 
   
   // UI state management
-  const [uiState, setUIState] = useState<'playing' | 'saltBackup' | 'revealing' | 'waitingForOpponent' | 'results'>('playing');
+  const [uiState, setUIState] = useState<'playing' | 'saltBackup' | 'revealing' | 'waitingForOpponent' | 'results'>(
+    rejoinToReveal ? 'revealing' : 'playing'
+  );
   
   // Manual input state
   const [manualInput, setManualInput] = useState({
@@ -157,6 +161,20 @@ export function GamePlay({ game, onBack, getWagerDisplay, playerAddress }: GameP
     
     return () => clearInterval(interval);
   }, [gameState, currentGameData.id, publicKey, connection, signTransaction, playerAddress, uiState, isPlayer1]);
+
+  // Add effect to auto-advance from saltBackup to revealing
+  useEffect(() => {
+    if (gameState === 'RevealPhase' && uiState === 'saltBackup') {
+      setUIState('revealing');
+    }
+  }, [gameState, uiState]);
+
+  useEffect(() => {
+    if (rejoinToReveal && onClearRejoinToReveal) {
+      onClearRejoinToReveal();
+    }
+    // eslint-disable-next-line
+  }, []);
 
   // Handlers for child components
   const handleSaltBackupGoToReveal = () => {

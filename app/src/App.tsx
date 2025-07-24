@@ -35,6 +35,7 @@ function AppContent() {
   const [currentView, setCurrentView] = useState<GameView>('home');
   const [currentGame, setCurrentGame] = useState<Game | null>(null);
   const wallet = useWallet();
+  const [rejoinToReveal, setRejoinToReveal] = useState(false);
 
   const handleCreateGame = (wager: WagerAmount, gameId?: string) => {
     // After creating game on blockchain, go to the game's detailed view
@@ -106,6 +107,11 @@ function AppContent() {
                 onJoinGame={() => setCurrentView('join')}
                 onRejoinGame={(game: Game) => {
                   setCurrentGame(game);
+                  if (game.status === 'RevealPhase') {
+                    setRejoinToReveal(true);
+                  } else {
+                    setRejoinToReveal(false);
+                  }
                   setCurrentView('play');
                 }}
                 getWagerDisplay={getWagerDisplay}
@@ -140,6 +146,8 @@ function AppContent() {
               onBack={handleBackToHome}
               getWagerDisplay={getWagerDisplay}
               playerAddress={wallet.publicKey?.toString() || ''}
+              rejoinToReveal={rejoinToReveal}
+              onClearRejoinToReveal={() => setRejoinToReveal(false)}
             />
           )}
           

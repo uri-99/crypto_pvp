@@ -1193,6 +1193,10 @@ export type CryptoPvp = {
             "type": "u64"
           },
           {
+            "name": "totalLost",
+            "type": "u64"
+          },
+          {
             "name": "currentStreak",
             "type": "i32"
           },
