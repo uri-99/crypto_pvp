@@ -5,16 +5,23 @@ async function main() {
   try {
     console.log("🔧 Initializing global state...");
     
+    // Use current wallet as fee collector
+    const provider = anchor.AnchorProvider.env();
+    const feeCollector = provider.wallet.publicKey;
+    console.log(`💰 Fee collector set to: ${feeCollector.toString()}`);
+    
     // Get program instance
     const program = getProgram();
     
-    // Initialize global state
+    // Initialize global state with fee collector
     await program.methods
-      .initializeGlobalState()
+      .initializeGlobalState(feeCollector)
       .rpc();
     
     console.log("✅ Global state initialized successfully!");
     console.log("🎯 The program is now ready for games!");
+    console.log("");
+    console.log("💡 1% of all wagers will be sent to the fee collector address");
     
   } catch (error) {
     console.error("❌ Error initializing global state:", error);

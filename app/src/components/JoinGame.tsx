@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { WagerAmount, Move } from '../App';
+import { WagerAmount } from '../App';
 import { ArrowLeft, Users, Clock, Filter, Plus } from 'lucide-react';
 import { useGetAvailableGames } from '../utils/gameDataHooks';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -9,7 +9,7 @@ import idl from '../idl/crypto_pvp.json';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 interface JoinGameProps {
-  onJoinGame: (_gameId: string, _move: Move) => void;
+  onJoinGame: (_gameId: string, _wager: WagerAmount) => void;
   onBack: () => void;
   onCreateGame: () => void;
   getWagerDisplay: (_wager: WagerAmount) => string;
@@ -18,7 +18,7 @@ interface JoinGameProps {
 const PROGRAM_ID = new web3.PublicKey(idl.address);
 
 export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: JoinGameProps) {
-  const { availableGames, availableGamesLoading } = useGetAvailableGames();
+  const { availableGames, availableGamesLoading, refreshAvailableGames } = useGetAvailableGames();
   const wallet = useWallet();
   const { connection } = useConnection();
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
@@ -62,6 +62,14 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
         gameIdBN.toArrayLike(Buffer, 'le', 8)
       ], PROGRAM_ID);
       
+      const [globalStatePda] = await web3.PublicKey.findProgramAddress([
+        Buffer.from('global_state')
+      ], PROGRAM_ID);
+      
+      // Fetch global state to get fee collector
+      const globalState = await (program.account as any).globalState.fetch(globalStatePda);
+      const feeCollector = (globalState as any).feeCollector;
+      
       const [playerProfilePda] = await web3.PublicKey.findProgramAddress([
         Buffer.from('player_profile'),
         wallet.publicKey.toBytes()
@@ -74,15 +82,21 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
         gameIdBN  // Only _game_id parameter
       ).accounts({
         game: gamePda,
+        globalState: globalStatePda,
         player: wallet.publicKey,
         player2Profile: playerProfilePda,
+        feeCollector: feeCollector,
         systemProgram: web3.SystemProgram.programId,
       }).rpc();
       
       console.log('✅ Successfully joined game:', selectedGame);
       
       // Call parent handler for UI state (no move since we don't commit during join)
-              await onJoinGame(selectedGame, 'rock' as Move);
+      const selectedGameData = availableGamesToShow.find(g => g.id === selectedGame);
+      if (!selectedGameData) {
+        throw new Error('Selected game data not found');
+      }
+      await onJoinGame(selectedGame, selectedGameData.wager);
     } catch (e) {
       console.error('Error details:', e);
       alert('Error joining game: ' + (e instanceof Error ? e.message : e));
@@ -113,8 +127,21 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
             <h3 className="text-xl font-semibold">Available Games</h3>
           </div>
           
-          {/* Wager Filter */}
+          {/* Wager Filter and Refresh */}
           <div className="flex items-center gap-2">
+            <button 
+              onClick={refreshAvailableGames}
+              disabled={availableGamesLoading}
+              className="text-secondary hover:text-primary transition-colors"
+              title="Refresh games list"
+              style={{ background: 'none', border: 'none', padding: '12px', fontSize: '1.25rem', cursor: 'pointer' }}
+            >
+              {availableGamesLoading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-current border-t-transparent"></div>
+              ) : (
+                <>🔄</>
+              )}
+            </button>
             <Filter size={16} />
             <select 
               value={wagerFilter} 
@@ -236,9 +263,6 @@ export function JoinGame({ onJoinGame, onBack, onCreateGame, getWagerDisplay }: 
             </div>
           </div>
           
-          <div className="text-sm text-warning mt-4 p-3 rounded-lg" style={{background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)'}}>
-            ⚠️ By joining this game, you commit <strong>{getWagerDisplay(selectedGameData.wager)}</strong> to the match. Winner takes all!
-          </div>
         </div>
       )}
 

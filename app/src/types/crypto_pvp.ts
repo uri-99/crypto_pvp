@@ -337,6 +337,10 @@ export type CryptoPvp = {
           }
         },
         {
+          "name": "feeCollector",
+          "writable": true
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -403,7 +407,12 @@ export type CryptoPvp = {
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "feeCollector",
+          "type": "pubkey"
+        }
+      ]
     },
     {
       "name": "joinGame",
@@ -435,6 +444,31 @@ export type CryptoPvp = {
               {
                 "kind": "arg",
                 "path": "gameId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "globalState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
               }
             ]
           }
@@ -474,6 +508,10 @@ export type CryptoPvp = {
               }
             ]
           }
+        },
+        {
+          "name": "feeCollector",
+          "writable": true
         },
         {
           "name": "systemProgram",
@@ -644,6 +682,118 @@ export type CryptoPvp = {
               32
             ]
           }
+        }
+      ]
+    },
+    {
+      "name": "updateFeeCollector",
+      "docs": [
+        "Update fee collector address (only authority can call this)"
+      ],
+      "discriminator": [
+        132,
+        54,
+        153,
+        82,
+        79,
+        118,
+        79,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "globalState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "globalState"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "newFeeCollector",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "updateFeePercentage",
+      "docs": [
+        "Update fee percentage (only authority can call this)"
+      ],
+      "discriminator": [
+        102,
+        119,
+        197,
+        160,
+        139,
+        102,
+        182,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "globalState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "globalState"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "newFeePercentage",
+          "type": "u64"
         }
       ]
     },
@@ -842,6 +992,10 @@ export type CryptoPvp = {
             }
           },
           {
+            "name": "feePerPlayer",
+            "type": "u64"
+          },
+          {
             "name": "state",
             "type": {
               "defined": {
@@ -958,6 +1112,14 @@ export type CryptoPvp = {
             "type": "pubkey"
           },
           {
+            "name": "feeCollector",
+            "type": "pubkey"
+          },
+          {
+            "name": "feePercentage",
+            "type": "u64"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -1028,6 +1190,10 @@ export type CryptoPvp = {
           },
           {
             "name": "totalWon",
+            "type": "u64"
+          },
+          {
+            "name": "totalLost",
             "type": "u64"
           },
           {

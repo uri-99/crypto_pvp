@@ -60,6 +60,7 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
       
       const globalState = await (program.account as any).globalState.fetch(globalStatePda);
       const gameCounter = (globalState as any).gameCounter.toNumber();
+      const feeCollector = (globalState as any).feeCollector;
       
       const [gamePda] = await web3.PublicKey.findProgramAddress([
         Buffer.from('game'),
@@ -81,6 +82,7 @@ export function CreateGame({ onCreateGame, onBack }: CreateGameProps) {
         globalState: globalStatePda,
         player: wallet.publicKey,
         player1Profile: playerProfilePda,
+        feeCollector: feeCollector,
         systemProgram: web3.SystemProgram.programId,
       }).rpc();
       
