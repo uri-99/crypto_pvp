@@ -3,12 +3,13 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct GlobalState {
-    pub game_counter: u64,          // Next game ID to use
-    pub total_games_completed: u64, // Total completed 
-    pub authority: Pubkey,          // For application admin functions
-    pub fee_collector: Pubkey,      // Address that receives 1% fee from all games
-    pub fee_percentage: u64,        // Fee percentage (e.g., 1 for 1%)
-    pub bump: u8,                   // PDA bump for global state
+    pub game_counter: u64,            // Next game ID to use
+    pub total_games_completed: u64,   // Total completed 
+    pub authority: Pubkey,            // For application admin functions
+    pub fee_collector: Pubkey,        // Address that receives 1% fee from all games
+    pub fee_percentage: u64,          // Fee percentage (e.g., 1 for 1%)
+    pub reveal_timeout_seconds: i64,  // Timeout to play or loose
+    pub bump: u8,                     // PDA bump for global state
 }
 
 #[account]
