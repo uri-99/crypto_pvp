@@ -64,6 +64,16 @@ pub fn update_player_stats(
             player2_profile.losses += 1;
             player1_profile.total_won += profit; // profit from opponent
             player2_profile.total_lost += game.wager.to_lamports();
+            // Streak logic
+            player1_profile.current_streak += 1;
+            if player1_profile.current_streak > player1_profile.best_streak as i32 {
+                player1_profile.best_streak = player1_profile.current_streak as u32;
+            }
+            if player2_profile.current_streak > 0 {
+                player2_profile.current_streak = 0;
+            } else {
+                player2_profile.current_streak -= 1;
+            }
         }
         Winner::Player2 => {
             player1_profile.total_games_completed += 1;
@@ -72,13 +82,23 @@ pub fn update_player_stats(
             player2_profile.wins += 1;
             player2_profile.total_won += profit; // profit from opponent
             player1_profile.total_lost += game.wager.to_lamports();
+            // Streak logic
+            player2_profile.current_streak += 1;
+            if player2_profile.current_streak > player2_profile.best_streak as i32 {
+                player2_profile.best_streak = player2_profile.current_streak as u32;
+            }
+            if player1_profile.current_streak > 0 {
+                player1_profile.current_streak = 0;
+            } else {
+                player1_profile.current_streak -= 1;
+            }
         }
         Winner::Tie => {
             player1_profile.total_games_completed += 1;
             player2_profile.total_games_completed += 1;
             player1_profile.ties += 1;
             player2_profile.ties += 1;
-            // no total_won or total_lost changes for ties
+            // Streak logic: tie does not change current_streak
         }
         Winner::Player1OpponentForfeit => {
             // Player1 completed, Player2 forfeited
@@ -88,6 +108,16 @@ pub fn update_player_stats(
             player2_profile.losses += 1;
             player1_profile.total_won += profit; // profit from opponent
             player2_profile.total_lost += game.wager.to_lamports();
+            // Streak logic
+            player1_profile.current_streak += 1;
+            if player1_profile.current_streak > player1_profile.best_streak as i32 {
+                player1_profile.best_streak = player1_profile.current_streak as u32;
+            }
+            if player2_profile.current_streak > 0 {
+                player2_profile.current_streak = 0;
+            } else {
+                player2_profile.current_streak -= 1;
+            }
         }
         Winner::Player2OpponentForfeit => {
             // Player2 completed, Player1 forfeited
@@ -97,6 +127,16 @@ pub fn update_player_stats(
             player2_profile.wins += 1;
             player2_profile.total_won += profit; // profit from opponent
             player1_profile.total_lost += game.wager.to_lamports();
+            // Streak logic
+            player2_profile.current_streak += 1;
+            if player2_profile.current_streak > player2_profile.best_streak as i32 {
+                player2_profile.best_streak = player2_profile.current_streak as u32;
+            }
+            if player1_profile.current_streak > 0 {
+                player1_profile.current_streak = 0;
+            } else {
+                player1_profile.current_streak -= 1;
+            }
         }
     }
     

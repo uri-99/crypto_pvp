@@ -26,6 +26,8 @@ interface PlayerProfile {
   totalWon: number;
   totalLost: number;
   createdAt: number;
+  currentStreak: number;
+  bestStreak: number;
 }
 
 interface GameHistoryEntry {
@@ -84,6 +86,8 @@ export function Profile({ onBack }: ProfileProps) {
           totalWon: parseInt(profileData.totalWon.toString()),
           totalLost: parseInt(profileData.totalLost?.toString() || '0'),
           createdAt: parseInt(profileData.createdAt.toString()),
+          currentStreak: parseInt(profileData.currentStreak.toString()),
+          bestStreak: parseInt(profileData.bestStreak.toString()),
         });
 
         setNewName(profileData.name);
@@ -438,6 +442,20 @@ export function Profile({ onBack }: ProfileProps) {
                 <span style={{color: 'rgba(255,255,255,0.70)'}}>Completion Rate</span>
                 <span className="font-bold" style={{color: calculateCompletionRate() >= 90 ? '#28a745' : calculateCompletionRate() >= 70 ? '#ffc107' : '#dc3545'}}>
                   {calculateCompletionRate().toFixed(1)}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{color: 'rgba(255,255,255,0.70)'}}>Current Streak</span>
+                <span className="font-bold">
+                  {profile.currentStreak}
+                  {profile.currentStreak > 0 ? ' 🔥' : profile.currentStreak < 0 ? ' 🥶' : ''}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{color: 'rgba(255,255,255,0.70)'}}>Best Streak</span>
+                <span className="font-bold">
+                  {profile.bestStreak}
+                  {profile.bestStreak > 0 ? ' 🔥' : ''}
                 </span>
               </div>
             </div>
