@@ -1187,6 +1187,10 @@
             "type": "u64"
           },
           {
+            "name": "total_lost",
+            "type": "u64"
+          },
+          {
             "name": "current_streak",
             "type": "i32"
           },

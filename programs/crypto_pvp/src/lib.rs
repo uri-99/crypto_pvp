@@ -435,6 +435,7 @@ fn update_player_stats(
             player1_profile.wins += 1;
             player2_profile.losses += 1;
             player1_profile.total_won += profit; // profit from opponent
+            player2_profile.total_lost += game.wager.to_lamports();
         }
         Winner::Player2 => {
             player1_profile.total_games_completed += 1;
@@ -442,13 +443,14 @@ fn update_player_stats(
             player1_profile.losses += 1;
             player2_profile.wins += 1;
             player2_profile.total_won += profit; // profit from opponent
+            player1_profile.total_lost += game.wager.to_lamports();
         }
         Winner::Tie => {
             player1_profile.total_games_completed += 1;
             player2_profile.total_games_completed += 1;
             player1_profile.ties += 1;
             player2_profile.ties += 1;
-            // no total_won changes
+            // no total_won or total_lost changes for ties
         }
         Winner::Player1OpponentForfeit => {
             // Player1 completed, Player2 forfeited
@@ -457,6 +459,7 @@ fn update_player_stats(
             player1_profile.wins += 1;
             player2_profile.losses += 1;
             player1_profile.total_won += profit; // profit from opponent
+            player2_profile.total_lost += game.wager.to_lamports();
         }
         Winner::Player2OpponentForfeit => {
             // Player2 completed, Player1 forfeited
@@ -465,6 +468,7 @@ fn update_player_stats(
             player1_profile.losses += 1;
             player2_profile.wins += 1;
             player2_profile.total_won += profit; // profit from opponent
+            player1_profile.total_lost += game.wager.to_lamports();
         }
     }
     
