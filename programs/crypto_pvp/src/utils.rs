@@ -12,12 +12,18 @@ pub fn process_wager<'info>(
     fee_collector: &AccountInfo<'info>,
     system_program: &AccountInfo<'info>,
     game: &Account<'info, Game>,
+    player_profile: &mut Account<'info, PlayerProfile>,
 ) -> Result<()> {
     let fee_per_player = game.fee_per_player;
     let net_per_player = game.net_per_player();
     
     require!(fee_per_player > 0 && net_per_player > 0, GameError::InsufficientFunds);
     
+    // Update player's wagering stats
+    let wager_lamports = game.wager.to_lamports();
+    player_profile.total_wagered += wager_lamports;
+    player_profile.total_games_played += 1;
+
     // Transfer fee to fee collector
     transfer(
         CpiContext::new(
@@ -47,12 +53,15 @@ pub fn process_wager<'info>(
 }
 
 /// Helper function to update player stats when a game finishes
-pub fn update_player_stats(
+pub fn update_endgame_stats(
+    global_state: &mut Account<GlobalState>,
     player1_profile: &mut Account<PlayerProfile>,
     player2_profile: &mut Account<PlayerProfile>,
     winner_type: Winner,
     game: &Game,
 ) -> Result<()> {
+    global_state.total_games_completed += 1;
+
     let profit = game.net_per_player(); // Winner's profit = opponent's net contribution
     
     // Update wins/losses/ties and game completion stats based on outcome

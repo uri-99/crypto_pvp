@@ -21,8 +21,8 @@ pub mod crypto_pvp {
     //TODO function allowing closing of players for users to reclaim rent?
     // TODO function to withdraw from an empty created game after timeout
     
-    pub fn create_game(ctx: Context<CreateGame>, wager: WagerAmount) -> Result<()> {
-        game_logic::create_game(ctx, wager)
+    pub fn create_game(ctx: Context<CreateGame>, wager: WagerAmount, rounds_to_win: u8) -> Result<()> {
+        game_logic::create_game(ctx, wager, rounds_to_win)
     }
     pub fn join_game(ctx: Context<JoinGame>, game_id: u64) -> Result<()> {
         game_logic::join_game(ctx, game_id)

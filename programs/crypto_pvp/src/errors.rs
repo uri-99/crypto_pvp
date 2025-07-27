@@ -6,6 +6,8 @@ pub enum GameError {
     InvalidGameState,
     #[msg("Cannot join your own game")]
     CannotJoinOwnGame,
+    #[msg("Game is already full")]
+    GameAlreadyFull,
     #[msg("Not a player in this game")]
     NotPlayerInGame,
     #[msg("Already committed move")]
@@ -22,6 +24,10 @@ pub enum GameError {
     NoDeadlineSet,
     #[msg("Reveal deadline has not been reached yet")]
     DeadlineNotReached,
+    #[msg("Claimer has not committed their move")]
+    ClaimerDidNotCommit,
+    #[msg("Opponent has already committed their move")]
+    OpponentAlreadyCommitted,
     #[msg("Claimer has not revealed their move")]
     ClaimerDidNotReveal,
     #[msg("Opponent has already revealed their move")]

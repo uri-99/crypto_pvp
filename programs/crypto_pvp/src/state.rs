@@ -34,6 +34,7 @@ pub struct PlayerProfile {
     pub bump: u8,
 }
 
+// TODO refactor for x sized bets
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace, Debug)]
 pub enum WagerAmount {
     Sol1,    // 1.0 SOL
@@ -72,7 +73,11 @@ pub struct Game {
     pub player2_move: Option<Move>,
     pub winner_type: Option<Winner>,    // WHO won (Player1/Player2/Tie)
     pub winner_address: Option<Pubkey>, // WHICH address won
-    pub reveal_deadline: Option<i64>,   // Timestamp when non-revealer forfeits
+    pub play_deadline: Option<i64>,     // Timestamp for deadline of current phase
+    pub rounds_to_win: u8,
+    pub current_round: u8,              // Current round number (starts at 1)
+    pub player1_round_wins: u8,
+    pub player2_round_wins: u8,
     pub bump: u8,
 }
 
